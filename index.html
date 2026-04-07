@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>室內軌跡校正 Prototype</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #dbe3ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #0f172a;
+      --primaryText: #ffffff;
+      --secondary: #eef2f7;
+      --danger: #b91c1c;
+      --ok: #15803d;
+      --warn: #a16207;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+      overflow: hidden;
+    }
+    .card h2, .card h3 {
+      margin: 0;
+    }
+    .card-header {
+      padding: 18px 18px 8px 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .card-content { padding: 18px; }
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge {
+      background: #eef2f7;
+      color: #334155;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .alert {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    button, .download-link {
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      border-radius: 16px;
+      padding: 11px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button.primary {
+      background: var(--primary);
+      color: var(--primaryText);
+      border-color: var(--primary);
+    }
+    button.secondary {
+      background: var(--secondary);
+    }
+    button.danger {
+      background: #fee2e2;
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .big-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .big-actions button {
+      min-height: 68px;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .slider-box {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .slider-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    input[type="range"] { width: 100%; }
+    .subtle {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .map-wrap {
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      background: white;
+      padding: 10px;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      background:
+        linear-gradient(#e5e7eb 1px, transparent 1px),
+        linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: center center;
+      border-radius: 16px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .stat {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .stat .label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .stat .value {
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 380px;
+      overflow: auto;
+    }
+    .item {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .hint p {
+      margin: 0 0 8px 0;
+      line-height: 1.6;
+      color: #334155;
+      font-size: 14px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="grid">
+      <section class="card">
+        <div class="card-header">
+          <h2>室內軌跡校正 Prototype</h2>
+          <div class="badges">
+            <span class="badge" id="permissionBadge">idle</span>
+            <span class="badge" id="gpsBadge">無GPS</span>
+            <span class="badge" id="trackBadge">idle</span>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="alert" id="messageBox">先授權感測器與定位，再開始追蹤。</div>
+
+          <div class="btn-row">
+            <button class="primary" id="btnPermission">授權感測器與定位</button>
+            <button id="btnAnchor">以目前 GPS 設起點</button>
+            <button id="btnStart">開始追蹤</button>
+            <button id="btnStop">停止追蹤</button>
+            <button class="secondary" id="btnExport">匯出 JSON</button>
+            <a class="download-link" id="downloadLink" style="display:none;">下載匯出檔</a>
+            <button class="danger" id="btnReset">清空資料</button>
+          </div>
+
+          <div class="slider-box">
+            <div class="slider-row">
+              <span>步長設定</span>
+              <span id="stepLengthValue">0.72 m</span>
+            </div>
+            <input type="range" id="stepLength" min="0.4" max="1.0" step="0.01" value="0.72" />
+            <div class="subtle">先用手動步長校正，之後可改成依步頻或身高自動估計。</div>
+          </div>
+
+          <div class="big-actions">
+            <button id="btnPosCorrection">按鈕 1：位置校正</button>
+            <button class="secondary" id="btnHeadingCorrection">按鈕 2：方向校正</button>
+          </div>
+
+          <div class="map-wrap">
+            <canvas id="trackCanvas" width="560" height="560"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <div>
+        <section class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>即時狀態</h3></div>
+          <div class="card-content">
+            <div class="stats">
+              <div class="stat"><div class="label">估計位置</div><div class="value" id="poseValue">x 0.00 / y 0.00</div></div>
+              <div class="stat"><div class="label">估計方向</div><div class="value" id="headingValue">0.0°</div></div>
+              <div class="stat"><div class="label">GPS accuracy</div><div class="value" id="gpsAccValue">-</div><div class="subtle">校正門檻：20 m</div></div>
+              <div class="stat"><div class="label">步數</div><div class="value" id="stepCountValue">0</div></div>
+              <div class="stat"><div class="label">加速度</div><div class="value" id="accValue">0, 0, 0</div></div>
+              <div class="stat"><div class="label">步態訊號</div><div class="value" id="motionValue">raw 0 / smooth 0</div></div>
+              <div class="stat"><div class="label">上次步伐</div><div class="value" id="lastStepValue">-</div></div>
+              <div class="stat"><div class="label">地理座標</div><div class="value" id="geoValue">-</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>校正紀錄</h3></div>
+          <div class="card-content">
+            <div class="list" id="correctionList">
+              <div class="item">尚未進行校正。建議先在入口設定起點，追蹤後到窗邊做位置校正，再做方向校正。</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>上 GitHub Pages 的流程</h3></div>
+          <div class="card-content hint">
+            <p>1. 把這份檔案存成 <strong>index.html</strong>。</p>
+            <p>2. 上傳到 GitHub 新 repo。</p>
+            <p>3. 到 Settings → Pages。</p>
+            <p>4. Branch 選 <strong>main</strong>，Folder 選 <strong>/root</strong>。</p>
+            <p>5. 存檔後等 1 到 3 分鐘，GitHub 會給你網站網址。</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const SAMPLE_MS = 250;
+  const POSITION_SAMPLE_SECONDS = 6;
+  const HEADING_SAMPLE_SECONDS = 4;
+  const DEFAULT_STEP_METERS = 0.72;
+  const STEP_THRESHOLD = 1.15;
+  const STEP_DEBOUNCE_MS = 320;
+  const STEP_SMOOTHING = 0.22;
+  const MIN_GPS_ACCURACY_METERS = 20;
+  const TRACK_SIZE = 560;
+  const CENTER = TRACK_SIZE / 2;
+  const SCALE = 8;
+
+  const state = {
+    permissionState: "idle",
+    tracking: false,
+    message: "先授權感測器與定位，再開始追蹤。",
+    anchor: null,
+    geoReading: null,
+    orientation: { heading: 0, supported: false },
+    motion: { ax: 0, ay: 0, az: 0, supported: false },
+    positionSampleMode: false,
+    headingSampleMode: false,
+    positionSamples: [],
+    headingSamples: [],
+    trail: [{ x: 0, y: 0, heading: 0, t: Date.now() }],
+    currentPose: { x: 0, y: 0, heading: 0 },
+    corrections: [],
+    stepCount: 0,
+    stepLength: DEFAULT_STEP_METERS,
+    lastStepAt: 0,
+    motionMagnitude: 0,
+    smoothedMagnitude: 0,
+    exportUrl: ""
+  };
+
+  let geoWatchId = null;
+  let positionTimer = null;
+  let headingTimer = null;
+  let smoothedMagnitudeRef = 0;
+  let lastStepAtRef = 0;
+
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("trackCanvas");
+  const ctx = canvas.getContext("2d");
+
+  function average(nums) {
+    return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+  }
+
+  function fmt(n, d = 2) {
+    return Number.isFinite(n) ? n.toFixed(d) : "-";
+  }
+
+  function normalizeAngle(deg) {
+    let a = deg % 360;
+    if (a < 0) a += 360;
+    return a;
+  }
+
+  function angleDelta(target, current) {
+    let d = normalizeAngle(target) - normalizeAngle(current);
+    if (d > 180) d -= 360;
+    if (d < -180) d += 360;
+    return d;
+  }
+
+  function rotatePoint(point, deg) {
+    const rad = (deg * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    return {
+      x: point.x * cos - point.y * sin,
+      y: point.x * sin + point.y * cos
+    };
+  }
+
+  function latLngToMeters(anchor, point) {
+    if (!anchor || !point) return { x: 0, y: 0 };
+    const latScale = 111320;
+    const lngScale = 111320 * Math.cos((anchor.lat * Math.PI) / 180);
+    return {
+      x: (point.lng - anchor.lng) * lngScale,
+      y: -(point.lat - anchor.lat) * latScale
+    };
+  }
+
+  function latestPose() {
+    return state.trail[state.trail.length - 1] || state.currentPose;
+  }
+
+  function setMessage(msg) {
+    state.message = msg;
+    render();
+  }
+
+  function gpsBadgeText() {
+    const acc = state.geoReading?.accuracy;
+    if (!acc) return "無GPS";
+    if (acc <= 10) return "GPS佳";
+    if (acc <= 25) return "GPS可用";
+    return "GPS偏弱";
+  }
+
+  function renderCorrections() {
+    const box = $("correctionList");
+    if (!state.corrections.length) {
+      box.innerHTML = `<div class="item">尚未進行校正。建議先在入口設定起點，追蹤後到窗邊做位置校正，再做方向校正。</div>`;
+      return;
+    }
+    box.innerHTML = state.corrections.map((c) => {
+      const top = `<div class="item-top"><span class="badge">${c.type}</span><span style="color:#64748b;">${new Date(c.ts).toLocaleTimeString()}</span></div>`;
+      if (c.type === "position") {
+        return `<div class="item">${top}
+          <div>before: (${fmt(c.beforeX)}, ${fmt(c.beforeY)})</div>
+          <div>after: (${fmt(c.afterX)}, ${fmt(c.afterY)})</div>
+          <div>accuracy: ${fmt(c.accuracy, 1)} m</div>
+          <div>samples: ${c.sampleCount ?? "-"}</div>
+          <div>offset: dx ${fmt(c.dx)} / dy ${fmt(c.dy)}</div>
+        </div>`;
+      }
+      return `<div class="item">${top}
+        <div>before: ${fmt(c.beforeHeading, 1)}°</div>
+        <div>after: ${fmt(c.afterHeading, 1)}°</div>
+        <div>delta: ${fmt(c.delta, 1)}°</div>
+        <div>samples: ${c.sampleCount ?? "-"}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function drawTrack() {
+    ctx.clearRect(0, 0, TRACK_SIZE, TRACK_SIZE);
+
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(CENTER, 0);
+    ctx.lineTo(CENTER, TRACK_SIZE);
+    ctx.moveTo(0, CENTER);
+    ctx.lineTo(TRACK_SIZE, CENTER);
+    ctx.stroke();
+
+    if (!state.trail.length) return;
+
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    state.trail.forEach((p, i) => {
+      const x = CENTER + p.x * SCALE;
+      const y = CENTER + p.y * SCALE;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    const start = state.trail[0];
+    const last = latestPose();
+
+    ctx.fillStyle = "#16a34a";
+    ctx.beginPath();
+    ctx.arc(CENTER + start.x * SCALE, CENTER + start.y * SCALE, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#dc2626";
+    ctx.beginPath();
+    ctx.arc(CENTER + last.x * SCALE, CENTER + last.y * SCALE, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function render() {
+    $("messageBox").textContent = state.message;
+    $("permissionBadge").textContent = state.permissionState;
+    $("gpsBadge").textContent = gpsBadgeText();
+    $("trackBadge").textContent = state.tracking ? "tracking" : "idle";
+
+    const pose = latestPose();
+    $("poseValue").textContent = `x ${fmt(pose.x)} m / y ${fmt(pose.y)} m`;
+    $("headingValue").textContent = `${fmt(pose.heading, 1)}°`;
+    $("gpsAccValue").textContent = state.geoReading ? `${fmt(state.geoReading.accuracy, 1)} m` : "-";
+    $("stepCountValue").textContent = String(state.stepCount);
+    $("accValue").textContent = `${fmt(state.motion.ax)}, ${fmt(state.motion.ay)}, ${fmt(state.motion.az)}`;
+    $("motionValue").textContent = `raw ${fmt(state.motionMagnitude)} / smooth ${fmt(state.smoothedMagnitude)}`;
+    $("lastStepValue").textContent = state.lastStepAt ? new Date(state.lastStepAt).toLocaleTimeString() : "-";
+    $("geoValue").textContent = state.geoReading ? `${fmt(state.geoReading.lat, 6)}, ${fmt(state.geoReading.lng, 6)}` : "-";
+    $("stepLengthValue").textContent = `${fmt(state.stepLength, 2)} m`;
+
+    $("btnStop").disabled = !state.tracking;
+    $("btnStart").disabled = state.tracking;
+    $("btnPosCorrection").disabled = state.positionSampleMode || !state.geoReading;
+    $("btnHeadingCorrection").disabled = state.headingSampleMode;
+
+    $("btnPosCorrection").textContent = state.positionSampleMode ? "位置收樣中..." : "按鈕 1：位置校正";
+    $("btnHeadingCorrection").textContent = state.headingSampleMode ? "方向收樣中..." : "按鈕 2：方向校正";
+
+    renderCorrections();
+    drawTrack();
+  }
+
+  async function requestPermissions() {
+    try {
+      if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+        await DeviceMotionEvent.requestPermission();
+      }
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        await DeviceOrientationEvent.requestPermission();
+      }
+      if (!navigator.geolocation) throw new Error("此瀏覽器不支援 Geolocation。");
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const next = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            heading: pos.coords.heading,
+            speed: pos.coords.speed,
+            ts: Date.now()
+          };
+          state.geoReading = next;
+          if (!state.anchor) state.anchor = { lat: next.lat, lng: next.lng };
+          state.permissionState = "granted";
+          setMessage("授權完成，可以開始追蹤。建議先在入口或窗邊設定起點。");
+        },
+        (err) => {
+          state.permissionState = "denied";
+          setMessage(`定位授權失敗：${err.message}`);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } catch (err) {
+      state.permissionState = "denied";
+      setMessage(`感測器授權失敗：${err.message}`);
+    }
+  }
+
+  function handleOrientation(event) {
+    const webkitHeading = event.webkitCompassHeading;
+    const alphaHeading = typeof event.alpha === "number" ? 360 - event.alpha : 0;
+    const heading = normalizeAngle(typeof webkitHeading === "number" ? webkitHeading : alphaHeading);
+    state.orientation = { heading, supported: true };
+    state.currentPose.heading = heading;
+    render();
+  }
+
+  function handleMotion(event) {
+    const acc = event.accelerationIncludingGravity || event.acceleration;
+    const ax = acc?.x ?? 0;
+    const ay = acc?.y ?? 0;
+    const az = acc?.z ?? 0;
+    const magnitude = Math.sqrt(ax * ax + ay * ay + az * az);
+    const nextSmoothed = smoothedMagnitudeRef * (1 - STEP_SMOOTHING) + magnitude * STEP_SMOOTHING;
+    const delta = magnitude - nextSmoothed;
+
+    smoothedMagnitudeRef = nextSmoothed;
+    state.motion = { ax, ay, az, supported: true };
+    state.motionMagnitude = magnitude;
+    state.smoothedMagnitude = nextSmoothed;
+
+    if (!state.tracking) {
+      render();
+      return;
+    }
+
+    const now = Date.now();
+    if (delta > STEP_THRESHOLD && now - lastStepAtRef > STEP_DEBOUNCE_MS) {
+      lastStepAtRef = now;
+      state.lastStepAt = now;
+      state.stepCount += 1;
+      const last = latestPose();
+      const heading = state.orientation.heading;
+      const rad = (heading * Math.PI) / 180;
+      const next = {
+        x: last.x + Math.sin(rad) * state.stepLength,
+        y: last.y - Math.cos(rad) * state.stepLength,
+        heading,
+        t: now
+      };
+      state.currentPose = next;
+      state.trail.push(next);
+    }
+    render();
+  }
+
+  function startTracking() {
+    if (state.permissionState !== "granted") {
+      setMessage("請先授權。iPhone 通常需要按鈕觸發權限。");
+      return;
+    }
+    state.tracking = true;
+    if (geoWatchId != null) navigator.geolocation.clearWatch(geoWatchId);
+    geoWatchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        state.geoReading = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          heading: pos.coords.heading,
+          speed: pos.coords.speed,
+          ts: Date.now()
+        };
+        render();
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+    );
+    setMessage("開始追蹤。現在會嘗試用加速度峰值偵測步伐來推進軌跡，並可在 GPS 較佳時做手動校正。");
+    render();
+  }
+
+  function stopTracking() {
+    state.tracking = false;
+    if (geoWatchId != null) navigator.geolocation.clearWatch(geoWatchId);
+    setMessage("已停止追蹤。");
+    render();
+  }
+
+  function resetAll() {
+    stopTracking();
+    state.trail = [{ x: 0, y: 0, heading: 0, t: Date.now() }];
+    state.currentPose = { x: 0, y: 0, heading: 0 };
+    state.corrections = [];
+    state.positionSamples = [];
+    state.headingSamples = [];
+    state.stepCount = 0;
+    state.lastStepAt = 0;
+    lastStepAtRef = 0;
+    smoothedMagnitudeRef = 0;
+    state.motionMagnitude = 0;
+    state.smoothedMagnitude = 0;
+    if (state.exportUrl) {
+      URL.revokeObjectURL(state.exportUrl);
+      state.exportUrl = "";
+      $("downloadLink").style.display = "none";
+    }
+    setMessage("資料已清空。可重新設定起點後再開始。");
+    render();
+  }
+
+  function setCurrentGpsAsAnchor() {
+    if (!state.geoReading) {
+      setMessage("目前沒有 GPS/Geolocation 讀值，不能設定起點。");
+      return;
+    }
+    state.anchor = { lat: state.geoReading.lat, lng: state.geoReading.lng };
+    setMessage("已把目前位置設為外部座標錨點。之後位置校正會以這個錨點換算成平面偏移。");
+    render();
+  }
+
+  function beginPositionCorrection() {
+    if (!state.geoReading) {
+      setMessage("目前沒有可用定位訊號。請到窗邊或入口再試。");
+      return;
+    }
+    if (Number.isFinite(state.geoReading.accuracy) && state.geoReading.accuracy > MIN_GPS_ACCURACY_METERS) {
+      setMessage(`目前 GPS accuracy 約 ${fmt(state.geoReading.accuracy, 1)} m，超過門檻 ${MIN_GPS_ACCURACY_METERS} m，先不要校正。`);
+      return;
+    }
+    state.positionSampleMode = true;
+    state.positionSamples = [];
+    render();
+    setMessage(`開始位置收樣 ${POSITION_SAMPLE_SECONDS} 秒，請盡量站定。系統會只取較可信樣本再平均。`);
+
+    const startedAt = Date.now();
+    clearInterval(positionTimer);
+    positionTimer = setInterval(() => {
+      if (state.geoReading) {
+        state.positionSamples.push({
+          lat: state.geoReading.lat,
+          lng: state.geoReading.lng,
+          accuracy: state.geoReading.accuracy,
+          ts: Date.now()
+        });
+      }
+      if (Date.now() - startedAt >= POSITION_SAMPLE_SECONDS * 1000) {
+        clearInterval(positionTimer);
+        finalizePositionCorrection();
+      }
+    }, SAMPLE_MS);
+  }
+
+  function finalizePositionCorrection() {
+    state.positionSampleMode = false;
+    if (!state.positionSamples.length || !state.anchor) {
+      setMessage("位置校正失敗：缺少樣本或尚未設定錨點。");
+      render();
+      return;
+    }
+
+    const filtered = state.positionSamples.filter(
+      (s) => Number.isFinite(s.accuracy) && s.accuracy <= MIN_GPS_ACCURACY_METERS
+    );
+    const base = filtered.length >= 3 ? filtered : state.positionSamples;
+    const weights = base.map((s) => 1 / Math.max(s.accuracy || MIN_GPS_ACCURACY_METERS, 1));
+    const weightSum = weights.reduce((a, b) => a + b, 0) || 1;
+    const avgLat = base.reduce((sum, s, i) => sum + s.lat * weights[i], 0) / weightSum;
+    const avgLng = base.reduce((sum, s, i) => sum + s.lng * weights[i], 0) / weightSum;
+    const avgAcc = base.reduce((sum, s) => sum + (s.accuracy || 0), 0) / base.length;
+
+    const correctedMeters = latLngToMeters(state.anchor, { lat: avgLat, lng: avgLng });
+    const before = latestPose();
+    const dx = correctedMeters.x - before.x;
+    const dy = correctedMeters.y - before.y;
+
+    state.trail = state.trail.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy }));
+    state.currentPose = { ...state.currentPose, x: state.currentPose.x + dx, y: state.currentPose.y + dy };
+    state.corrections.unshift({
+      id: crypto.randomUUID(),
+      type: "position",
+      beforeX: before.x,
+      beforeY: before.y,
+      afterX: correctedMeters.x,
+      afterY: correctedMeters.y,
+      dx,
+      dy,
+      accuracy: avgAcc,
+      sampleCount: base.length,
+      ts: Date.now()
+    });
+
+    setMessage(`位置校正完成。採用 ${base.length} 筆樣本加權平均後修正位移，平均誤差 ${fmt(avgAcc, 1)} m。`);
+    render();
+  }
+
+  function beginHeadingCorrection() {
+    state.headingSampleMode = true;
+    state.headingSamples = [];
+    render();
+    setMessage(`開始方向收樣 ${HEADING_SAMPLE_SECONDS} 秒，請保持手機朝向固定。`);
+    const startedAt = Date.now();
+    clearInterval(headingTimer);
+    headingTimer = setInterval(() => {
+      state.headingSamples.push({ heading: state.orientation.heading, ts: Date.now() });
+      if (Date.now() - startedAt >= HEADING_SAMPLE_SECONDS * 1000) {
+        clearInterval(headingTimer);
+        finalizeHeadingCorrection();
+      }
+    }, SAMPLE_MS);
+  }
+
+  function finalizeHeadingCorrection() {
+    state.headingSampleMode = false;
+    if (!state.headingSamples.length) {
+      setMessage("方向校正失敗：沒有收集到方向樣本。");
+      render();
+      return;
+    }
+
+    const avgHeading = normalizeAngle(average(state.headingSamples.map((s) => s.heading)));
+    const before = latestPose().heading ?? state.currentPose.heading;
+    const delta = angleDelta(avgHeading, before);
+
+    state.trail = state.trail.map((p) => {
+      const rotated = rotatePoint(p, delta);
+      return { ...p, x: rotated.x, y: rotated.y, heading: normalizeAngle((p.heading ?? 0) + delta) };
+    });
+
+    const rotated = rotatePoint(state.currentPose, delta);
+    state.currentPose = { ...state.currentPose, x: rotated.x, y: rotated.y, heading: normalizeAngle((state.currentPose.heading ?? 0) + delta) };
+
+    state.corrections.unshift({
+      id: crypto.randomUUID(),
+      type: "heading",
+      beforeHeading: before,
+      afterHeading: avgHeading,
+      delta,
+      sampleCount: state.headingSamples.length,
+      ts: Date.now()
+    });
+
+    setMessage(`方向校正完成。已用 ${state.headingSamples.length} 筆樣本平均，修正 ${fmt(delta, 1)}°。`);
+    render();
+  }
+
+  function exportData() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      anchor: state.anchor,
+      latestPose: latestPose(),
+      stepCount: state.stepCount,
+      stepLength: state.stepLength,
+      geoReading: state.geoReading,
+      trail: state.trail,
+      corrections: state.corrections,
+      settings: {
+        positionSampleSeconds: POSITION_SAMPLE_SECONDS,
+        headingSampleSeconds: HEADING_SAMPLE_SECONDS,
+        minGpsAccuracyMeters: MIN_GPS_ACCURACY_METERS
+      }
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    if (state.exportUrl) URL.revokeObjectURL(state.exportUrl);
+    state.exportUrl = URL.createObjectURL(blob);
+    const link = $("downloadLink");
+    link.href = state.exportUrl;
+    link.download = `indoor-track-${Date.now()}.json`;
+    link.style.display = "inline-flex";
+    setMessage("已產生 JSON 匯出檔，可下載目前軌跡與校正資料。");
+  }
+
+  $("btnPermission").addEventListener("click", requestPermissions);
+  $("btnAnchor").addEventListener("click", setCurrentGpsAsAnchor);
+  $("btnStart").addEventListener("click", startTracking);
+  $("btnStop").addEventListener("click", stopTracking);
+  $("btnReset").addEventListener("click", resetAll);
+  $("btnPosCorrection").addEventListener("click", beginPositionCorrection);
+  $("btnHeadingCorrection").addEventListener("click", beginHeadingCorrection);
+  $("btnExport").addEventListener("click", exportData);
+  $("stepLength").addEventListener("input", (e) => {
+    state.stepLength = Number(e.target.value);
+    render();
+  });
+
+  window.addEventListener("deviceorientation", handleOrientation, true);
+  window.addEventListener("devicemotion", handleMotion, true);
+
+  render();
+})();
+</script>
+</body>
+</html>
