@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>室內導航 + QR 校正點工具</title>
+  <title>LeafNav Studio - 室內導航工作台</title>
   <style>
     :root {
       --bg: #f8fafc;
@@ -15,6 +15,8 @@
       --primaryText: #ffffff;
       --secondary: #eef2f7;
       --danger: #b91c1c;
+      --brand-primary: #2563eb;
+      --brand-accent: #8b5cf6;
     }
     * { box-sizing: border-box; }
     body {
@@ -27,7 +29,7 @@
       position: sticky;
       top: 0;
       z-index: 20;
-      background: rgba(248,250,252,.95);
+      background: rgba(255,255,255,.88);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
     }
@@ -282,6 +284,9 @@
       padding: 10px;
       text-align: left;
     }
+    @media (max-width: 1100px) {
+      .grid, .qr-grid { grid-template-columns: 1fr; }
+    }
     @media (max-width: 960px) {
       .grid, .qr-grid { grid-template-columns: 1fr; }
     }
@@ -290,7 +295,7 @@
 <body>
   <div class="topbar">
     <div class="topbar-inner">
-      <strong>室內導航工具箱</strong>
+      <div style="display:flex; align-items:center; gap:10px;"><div style="width:34px; height:34px; border-radius:12px; background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800;">L</div><div><div id="footerBrandName" style="font-weight:800;">LeafNav Studio</div><div id="brandTopSubtitle" style="font-size:12px; color:#64748b;">室內導航工作台</div></div></div>
       <div class="btns" style="margin:0;">
         <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#334155; background:#fff; border:1px solid #dbe3ee; border-radius:999px; padding:8px 10px;">
           模式
@@ -299,7 +304,7 @@
             <option value="user">使用者</option>
           </select>
         </label>
-        <button id="btnOpenAuth">管理員登入</button>
+        <button id="btnOpenAuth">登入管理員</button>
         <button id="btnExportProject">匯出專案</button>
         <button id="btnImportProject">匯入專案</button>
         <button id="btnCreateSnapshot">建立快照</button>
@@ -309,10 +314,14 @@
         </label>
         <button id="btnOpenLog">操作紀錄</button>
         <button id="btnOpenCollab">協作同步</button>
+        <button id="btnOpenBranding">品牌設定</button>
+        <button id="btnOpenDemo">Demo 模式</button>
         <input id="importProjectFile" type="file" accept="application/json" style="display:none;" />
       </div>
       <div class="navtabs">
-        <button class="tabbtn active" data-page="navPage">導航</button>
+        <button class="tabbtn active" data-page="homePage">首頁</button>
+        <button class="tabbtn" data-page="navPage">導航</button>
+        <button class="tabbtn" data-page="setupPage">部署教學</button>
         <button class="tabbtn" data-page="qrPage">QR 產生器</button>
         <button class="tabbtn" data-page="mapEditorPage">地圖編輯</button>
       </div>
@@ -320,7 +329,214 @@
   </div>
 
   <div class="wrap">
-    <div id="navPage" class="page active">
+
+    <div id="homePage" class="page active">
+      <section class="card" style="margin-bottom:20px; overflow:hidden;">
+        <div style="padding:26px; background:linear-gradient(135deg,#0f172a 0%,var(--brand-primary) 55%,var(--brand-accent) 100%); color:#fff;">
+          <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center;">
+            <div style="max-width:760px;">
+              <div id="heroCompanyBadge" style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-bottom:12px;">LeafNav Studio · Indoor Navigation Prototype</div>
+              <h1 id="heroSlogan" style="margin:0 0 10px 0; font-size:32px; line-height:1.15;">把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台</h1>
+              <p id="heroDescription" style="margin:0; font-size:15px; line-height:1.8; color:rgba(255,255,255,.9);">適合展示、POC、內部測試與現場實驗。支援使用者 / 管理員雙入口、Anchor 與地圖雙向同步、多樓層導航、快照、專案匯入匯出與協作同步。</p>
+            </div>
+            <div style="min-width:240px; display:grid; gap:10px;">
+              <div style="padding:14px; border-radius:18px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.14);">
+                <div style="font-size:12px; color:rgba(255,255,255,.72);">產品定位</div>
+                <div style="font-size:18px; font-weight:700; margin-top:4px;">室內導航 SaaS Prototype</div>
+              </div>
+              <div style="padding:14px; border-radius:18px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.14);">
+                <div style="font-size:12px; color:rgba(255,255,255,.72);">目前版本</div>
+                <div style="font-size:18px; font-weight:700; margin-top:4px;">Launch UI Edition</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px;">
+        <section class="card">
+          <div class="card-header">
+            <h2>使用者入口</h2>
+            <div class="badges"><span class="badge">導航模式</span></div>
+          </div>
+          <div class="card-content">
+            <div class="alert">
+              適合一般使用者。直接開始導航、查看方向提示、剩餘距離與到點通知。
+            </div>
+            <div class="stats" style="margin-bottom:14px;">
+              <div class="stat"><div class="label">目前模式</div><div class="value" id="homeUserModeText">使用者</div></div>
+              <div class="stat"><div class="label">可用功能</div><div class="value">導航 / 提示 / 到點</div></div>
+            </div>
+            <div class="btns" style="margin-bottom:0;">
+              <button id="btnEnterUserMode" class="primary">開始導航</button>
+              <button id="btnGoNavigation" class="secondary">打開導航介面</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <h2>管理員入口</h2>
+            <div class="badges"><span class="badge">維護模式</span></div>
+          </div>
+          <div class="card-content">
+            <div class="alert">
+              適合地圖維護與測試人員。可進入地圖編輯、Anchor 管理、快照、同步與專案設定。
+            </div>
+            <div class="stats" style="margin-bottom:14px;">
+              <div class="stat"><div class="label">目前權限</div><div class="value" id="homeAdminStatusText">未解鎖</div></div>
+              <div class="stat"><div class="label">可用功能</div><div class="value">地圖 / Anchor / 專案</div></div>
+            </div>
+            <div class="btns" style="margin-bottom:0;">
+              <button id="btnEnterAdminMode">進入管理後台</button>
+              <button id="btnOpenAuthFromHome" class="secondary">登入管理員</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:repeat(4,1fr); gap:16px; margin-top:20px;">
+        <section class="card"><div class="card-content"><div class="badge" style="margin-bottom:10px;">定位</div><div style="font-size:20px; font-weight:800;">IMU + GPS + QR</div><div class="subtle">支援位置校正、方向校正、步長校正與 QR 重定位。</div></div></section>
+        <section class="card"><div class="card-content"><div class="badge" style="margin-bottom:10px;">建圖</div><div style="font-size:20px; font-weight:800;">Map Editor</div><div class="subtle">點、線、區域、樓層、路網、牆與限制區一體化編輯。</div></div></section>
+        <section class="card"><div class="card-content"><div class="badge" style="margin-bottom:10px;">導航</div><div style="font-size:20px; font-weight:800;">Multi-floor Routing</div><div class="subtle">多段路徑、自動找路、樓梯 / 電梯 / 無障礙偏好。</div></div></section>
+        <section class="card"><div class="card-content"><div class="badge" style="margin-bottom:10px;">協作</div><div style="font-size:20px; font-weight:800;">Project & Snapshot</div><div class="subtle">專案匯入匯出、快照、操作紀錄與 Firestore 協作同步。</div></div></section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        <section class="card">
+          <div class="card-header"><h3>快速開始</h3></div>
+          <div class="card-content hint">
+            <p>1. 一般使用者可按「開始導航」。</p>
+            <p>2. 管理員先登入，再切到管理員模式。</p>
+            <p>3. 管理員可在地圖編輯頁建立路網與 Anchor。</p>
+            <p>4. 使用者只需打開導航頁，選目標開始。</p>
+            <p>5. 品牌設定可把這套系統改成你的專案名稱、主色與 slogan。</p>
+            <p>6. 部署教學頁內建了 GitHub Pages、Firebase 與 Firestore 規則範本。</p>
+            <p>7. Demo 模式可一鍵載入假資料，方便展示與簡報。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>目前專案摘要</h3></div>
+          <div class="card-content">
+            <div class="stats">
+              <div class="stat"><div class="label">Anchor 數量</div><div class="value" id="homeAnchorCount">0</div></div>
+              <div class="stat"><div class="label">地圖元素</div><div class="value" id="homeMapCount">0</div></div>
+              <div class="stat"><div class="label">導航歷史</div><div class="value" id="homeNavHistoryCount">0</div></div>
+              <div class="stat"><div class="label">快照數量</div><div class="value" id="homeSnapshotCount">0</div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+
+
+    <div id="setupPage" class="page">
+      <section class="card" style="margin-bottom:20px; overflow:hidden;">
+        <div style="padding:24px; background:linear-gradient(135deg,#0f172a 0%,var(--brand-primary) 55%,var(--brand-accent) 100%); color:#fff;">
+          <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center;">
+            <div style="max-width:860px;">
+              <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-bottom:12px;">Deployment Guide · Firebase Guide · Firestore Rules</div>
+              <h2 style="margin:0 0 10px 0; font-size:30px; line-height:1.15;">把這套室內導航原型真正部署成可測試、可協作、可交付的網站</h2>
+              <p style="margin:0; font-size:15px; line-height:1.8; color:rgba(255,255,255,.9);">這頁把 GitHub Pages、Firebase、Firestore、Auth 與協作同步的基本流程都整理在一起，方便你自己部署，也方便交接給別人。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px;">
+        <section class="card">
+          <div class="card-header"><h3>一、GitHub Pages 部署</h3></div>
+          <div class="card-content hint">
+            <p>1. 把目前最新版檔案改名成 <strong>index.html</strong>。</p>
+            <p>2. 建立或打開你的 GitHub repository。</p>
+            <p>3. 上傳 <strong>index.html</strong> 到 repo 根目錄。</p>
+            <p>4. 到 <strong>Settings → Pages</strong>。</p>
+            <p>5. Source 選 <strong>Deploy from a branch</strong>。</p>
+            <p>6. Branch 選 <strong>main</strong>，Folder 選 <strong>/ (root)</strong>。</p>
+            <p>7. 存檔後等 1 到 3 分鐘，GitHub 會給你公開網址。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>二、Firebase 專案建立</h3></div>
+          <div class="card-content hint">
+            <p>1. 到 Firebase Console 建立一個新專案。</p>
+            <p>2. 開啟 <strong>Firestore Database</strong>。</p>
+            <p>3. 在 Project settings 建立一個 <strong>Web app</strong>。</p>
+            <p>4. 複製 Web config JSON。</p>
+            <p>5. 回到本系統右上角 <strong>協作同步</strong>，把 JSON 貼進去。</p>
+            <p>6. 若要用 Firebase Auth，請到 Authentication 開啟 <strong>Email/Password</strong> provider。</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        <section class="card">
+          <div class="card-header"><h3>三、Firestore 規則範本</h3></div>
+          <div class="card-content">
+            <div class="subtle" style="margin-top:0; margin-bottom:10px;">下面是 prototype 用的簡化範本。正式環境請依你的需求加上更嚴格限制。</div>
+            <textarea id="firestoreRulesTemplate" readonly style="min-height:300px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 室內導航協作 room
+    match /indoorRooms/{roomId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}</textarea>
+            <div class="btns" style="margin-top:10px; margin-bottom:0;">
+              <button id="btnCopyFirestoreRules">複製 Firestore 規則</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>四、Firebase Config 範本</h3></div>
+          <div class="card-content">
+            <div class="subtle" style="margin-top:0; margin-bottom:10px;">把這段結構換成你自己 Firebase 專案的實際資料。</div>
+            <textarea id="firebaseConfigTemplate" readonly style="min-height:300px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;">{
+  "apiKey": "YOUR_API_KEY",
+  "authDomain": "YOUR_PROJECT.firebaseapp.com",
+  "projectId": "YOUR_PROJECT_ID",
+  "storageBucket": "YOUR_PROJECT.appspot.com",
+  "messagingSenderId": "YOUR_SENDER_ID",
+  "appId": "YOUR_APP_ID"
+}</textarea>
+            <div class="btns" style="margin-top:10px; margin-bottom:0;">
+              <button id="btnCopyFirebaseConfig">複製 Firebase Config 範本</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        <section class="card">
+          <div class="card-header"><h3>五、建議部署流程</h3></div>
+          <div class="card-content hint">
+            <p>1. 先在本機或 GitHub Pages 把單機版跑起來。</p>
+            <p>2. 確認 Anchor、地圖編輯、導航、快照都正常。</p>
+            <p>3. 再接 Firebase / Firestore 協作。</p>
+            <p>4. 最後再測管理員登入、使用者模式與多人同步。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>六、交付建議</h3></div>
+          <div class="card-content hint">
+            <p>1. 交付時至少附上：專案 JSON、快照 JSON、Firebase config。</p>
+            <p>2. 如果要給客戶 demo，建議先切成品牌化首頁版。</p>
+            <p>3. 若要正式上線，需再補 server-side 權限與更嚴格規則。</p>
+            <p>4. 可搭配你目前的首頁、管理員模式、協作同步一起展示。</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+
+    <div id="navPage" class="page">
       <div class="grid">
         <section class="card">
           <div class="card-header">
@@ -550,6 +766,7 @@
               <p>9. 右上角的協作同步可接 Firebase Firestore，讓多支手機即時共享同一套資料。</p>
               <p>10. 現在支援管理員 / 使用者模式切換，使用者模式只保留簡化導航功能。</p>
               <p>11. 管理員模式現在可用本地密碼或 Firebase Email Sign-in 雛形解鎖。</p>
+              <p>12. 新增首頁入口，讓一般使用者與管理員從一開始就走不同流程。</p>
             </div>
           </section>
         </div>
@@ -811,10 +1028,132 @@
 
 
 
+
+
+  <div id="demoModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,860px); max-height:84vh; overflow:auto; border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
+        <strong>Demo 展示模式</strong>
+        <div class="btns" style="margin:0;">
+          <button id="btnCloseDemo">關閉</button>
+        </div>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="formbox">
+          <div class="row">
+            <label for="demoProjectName">Demo 專案名稱</label>
+            <input id="demoProjectName" type="text" value="LeafNav Demo Building" />
+          </div>
+          <div class="row">
+            <label for="demoFloorCount">樓層數</label>
+            <select id="demoFloorCount" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+              <option value="1">單樓層</option>
+              <option value="2" selected>雙樓層</option>
+              <option value="3">三樓層</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="demoScenarioSelect">展示場景</label>
+            <select id="demoScenarioSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+              <option value="office">辦公室</option>
+              <option value="mall">商場</option>
+              <option value="campus">校園館舍</option>
+              <option value="hospital">醫療院所</option>
+            </select>
+          </div>
+          <div class="btns" style="margin-bottom:0;">
+            <button id="btnLoadDemoProject" class="primary">一鍵載入 Demo 資料</button>
+            <button id="btnStartDemoTour" class="secondary">開始展示導覽</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="card-header" style="padding:0 0 10px 0;"><h3>展示用途</h3></div>
+          <div class="card-content" style="padding:0;">
+            <div class="hint">
+              <p>1. 一鍵建立 Anchor、地圖元素、樓層路網與展示歷史。</p>
+              <p>2. 適合現場簡報、客戶 demo、團隊演示。</p>
+              <p>3. 可直接切到首頁、導航頁或地圖編輯頁展示。</p>
+              <p>4. 搭配品牌設定後，可以快速做客製化展示版。</p>
+            </div>
+            <div class="formbox" style="margin-top:12px;">
+              <div><strong>目前 Demo 狀態</strong></div>
+              <div class="subtle" id="demoStatusText" style="margin-top:8px;">尚未載入 demo 資料。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="brandingModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,820px); max-height:84vh; overflow:auto; border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
+        <strong>品牌客製化設定</strong>
+        <div class="btns" style="margin:0;">
+          <button id="btnCloseBranding">關閉</button>
+        </div>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="formbox">
+          <div class="row">
+            <label for="brandNameInput">品牌名稱</label>
+            <input id="brandNameInput" type="text" placeholder="例如：LeafNav Studio" />
+          </div>
+          <div class="row">
+            <label for="brandSubtitleInput">副標題</label>
+            <input id="brandSubtitleInput" type="text" placeholder="例如：室內導航工作台" />
+          </div>
+          <div class="row">
+            <label for="brandSloganInput">首頁主標語</label>
+            <textarea id="brandSloganInput" style="min-height:90px;" placeholder="例如：把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台"></textarea>
+          </div>
+          <div class="row">
+            <label for="brandDescriptionInput">首頁說明文字</label>
+            <textarea id="brandDescriptionInput" style="min-height:120px;" placeholder="例如：適合展示、POC、內部測試與現場實驗。"></textarea>
+          </div>
+          <div class="row">
+            <label for="brandPrimaryColorInput">主色</label>
+            <input id="brandPrimaryColorInput" type="color" value="#2563eb" />
+          </div>
+          <div class="row">
+            <label for="brandAccentColorInput">強調色</label>
+            <input id="brandAccentColorInput" type="color" value="#8b5cf6" />
+          </div>
+          <div class="row">
+            <label for="brandCompanyInput">公司 / 團隊名稱</label>
+            <input id="brandCompanyInput" type="text" placeholder="例如：先生 葉 工作空間" />
+          </div>
+          <div class="btns" style="margin-bottom:0;">
+            <button id="btnSaveBranding" class="primary">儲存品牌設定</button>
+            <button id="btnResetBranding" class="secondary">恢復預設</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="card-header" style="padding:0 0 10px 0;"><h3>即時預覽</h3></div>
+          <div class="card-content" style="padding:0;">
+            <div id="brandingPreviewCard" style="padding:22px; border-radius:20px; color:#fff; background:linear-gradient(135deg,#0f172a 0%,#2563eb 55%,#8b5cf6 100%);">
+              <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-bottom:12px;">
+                <span id="brandingPreviewCompany">LeafNav Studio</span>
+              </div>
+              <h2 id="brandingPreviewName" style="margin:0 0 8px 0; font-size:28px;">LeafNav Studio</h2>
+              <div id="brandingPreviewSubtitle" style="font-size:14px; color:rgba(255,255,255,.82); margin-bottom:12px;">室內導航工作台</div>
+              <div id="brandingPreviewSlogan" style="font-size:20px; font-weight:800; line-height:1.4; margin-bottom:10px;">把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台</div>
+              <div id="brandingPreviewDescription" style="font-size:14px; line-height:1.8; color:rgba(255,255,255,.9);">適合展示、POC、內部測試與現場實驗。支援使用者 / 管理員雙入口、Anchor 與地圖雙向同步、多樓層導航、快照、專案匯入匯出與協作同步。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; align-items:center; justify-content:center;">
     <div style="background:#fff; width:min(92vw,520px); border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <strong>管理員登入 / 權限驗證</strong>
+        <strong>登入管理員 / 權限驗證</strong>
         <button id="btnCloseAuth">關閉</button>
       </div>
       <div class="subtle" style="margin-top:0; margin-bottom:12px;">
@@ -1044,7 +1383,18 @@
     appRole: "admin",
     adminUnlocked: false,
     firebaseAuthStatus: "idle",
-    firebaseUserEmail: ""
+    firebaseUserEmail: "",
+    branding: {
+      name: "LeafNav Studio",
+      subtitle: "室內導航工作台",
+      slogan: "把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台",
+      description: "適合展示、POC、內部測試與現場實驗。支援使用者 / 管理員雙入口、Anchor 與地圖雙向同步、多樓層導航、快照、專案匯入匯出與協作同步。",
+      primaryColor: "#2563eb",
+      accentColor: "#8b5cf6",
+      company: "LeafNav Studio"
+    },
+    demoLoaded: false,
+    demoStatus: "尚未載入 demo 資料。"
   };
 
   let geoWatchId = null;
@@ -2951,7 +3301,12 @@
       },
       anchors: state.savedAnchors,
       mapElements: state.mapElements,
-      navHistory: state.navHistory
+      navHistory: state.navHistory,
+      branding: state.branding,
+      demo: {
+        loaded: state.demoLoaded,
+        status: state.demoStatus
+      }
     };
   }
 
@@ -2979,6 +3334,11 @@
       const mapElements = Array.isArray(data.mapElements) ? data.mapElements : [];
       const navHistory = Array.isArray(data.navHistory) ? data.navHistory : [];
       const settings = data.settings || {};
+      if (data.branding && typeof data.branding === "object") state.branding = { ...state.branding, ...data.branding };
+      if (data.demo && typeof data.demo === "object") {
+        state.demoLoaded = !!data.demo.loaded;
+        state.demoStatus = data.demo.status || state.demoStatus;
+      }
 
       maybeCreateAutoSnapshot("匯入專案前");
       state.savedAnchors = anchors;
@@ -3256,6 +3616,11 @@
       anchors: state.savedAnchors,
       mapElements: state.mapElements,
       navHistory: state.navHistory,
+      branding: state.branding,
+      demo: {
+        loaded: state.demoLoaded,
+        status: state.demoStatus
+      },
       snapshots: state.snapshots,
       logs: state.logs,
       settings: {
@@ -3446,7 +3811,7 @@
       state.appRole = "user";
       localStorage.setItem("indoor_app_role", "user");
       render();
-      setMessage("請先完成管理員登入後再切換到管理員模式。");
+      setMessage("請先完成登入管理員後再切換到管理員模式。");
       openAuthModal();
       return;
     }
@@ -3480,7 +3845,7 @@
     // tabs: user sees nav only
     document.querySelectorAll(".tabbtn").forEach((btn) => {
       const page = btn.getAttribute("data-page");
-      if (["qrPage", "mapEditorPage"].includes(page)) {
+      if (["qrPage", "mapEditorPage", "setupPage"].includes(page)) {
         btn.style.display = isUser ? "none" : "";
       }
     });
@@ -3553,14 +3918,14 @@
     const entered = $("adminPasswordInput").value;
     if (entered !== stored) {
       alert("密碼錯誤。");
-      addLog("管理員登入失敗", "本地密碼錯誤");
+      addLog("登入管理員失敗", "本地密碼錯誤");
       return;
     }
     state.adminUnlocked = true;
     state.appRole = "admin";
     localStorage.setItem("indoor_admin_unlocked", "true");
     localStorage.setItem("indoor_app_role", "admin");
-    addLog("管理員登入成功", "本地密碼");
+    addLog("登入管理員成功", "本地密碼");
     setMessage("已解鎖管理員模式。");
     render();
     updateAuthStatusUI();
@@ -3607,13 +3972,13 @@
       state.appRole = "admin";
       localStorage.setItem("indoor_admin_unlocked", "true");
       localStorage.setItem("indoor_app_role", "admin");
-      addLog("Firebase 管理員登入成功", state.firebaseUserEmail);
+      addLog("Firebase 登入管理員成功", state.firebaseUserEmail);
       setMessage(`已用 Firebase 登入管理員：${state.firebaseUserEmail}`);
       render();
       updateAuthStatusUI();
     } catch (e) {
       state.firebaseAuthStatus = "error";
-      addLog("Firebase 管理員登入失敗", e.message);
+      addLog("Firebase 登入管理員失敗", e.message);
       updateAuthStatusUI();
       alert("Firebase 登入失敗：" + e.message);
     }
@@ -3630,6 +3995,414 @@
     setMessage("已登出管理員並切回使用者模式。");
     render();
     updateAuthStatusUI();
+  }
+
+
+
+  function renderHomeSummary() {
+    if ($("homeUserModeText")) $("homeUserModeText").textContent = state.appRole === "user" ? "使用者" : "管理員";
+    if ($("homeAdminStatusText")) $("homeAdminStatusText").textContent = state.adminUnlocked ? "已解鎖" : "未解鎖";
+    if ($("homeAnchorCount")) $("homeAnchorCount").textContent = String(state.savedAnchors.length);
+    if ($("homeMapCount")) $("homeMapCount").textContent = String(state.mapElements.length);
+    if ($("homeNavHistoryCount")) $("homeNavHistoryCount").textContent = String(state.navHistory.length);
+    if ($("homeSnapshotCount")) $("homeSnapshotCount").textContent = String(state.snapshots.length);
+  }
+
+  function enterUserModeFromHome() {
+    state.appRole = "user";
+    localStorage.setItem("indoor_app_role", "user");
+    switchPage("navPage");
+    render();
+    setMessage("已開始導航。");
+  }
+
+  function enterAdminModeFromHome() {
+    if (!state.adminUnlocked) {
+      openAuthModal();
+      setMessage("請先完成登入管理員。");
+      return;
+    }
+    state.appRole = "admin";
+    localStorage.setItem("indoor_app_role", "admin");
+    switchPage("navPage");
+    render();
+    setMessage("已進入管理後台。");
+  }
+
+
+
+  function loadBranding() {
+    try {
+      const raw = localStorage.getItem("indoor_branding");
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data && typeof data === "object") {
+        state.branding = { ...state.branding, ...data };
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function persistBranding() {
+    localStorage.setItem("indoor_branding", JSON.stringify(state.branding));
+  }
+
+  function applyBrandingToUI() {
+    document.title = `${state.branding.name} - ${state.branding.subtitle}`;
+    document.documentElement.style.setProperty("--brand-primary", state.branding.primaryColor || "#2563eb");
+    document.documentElement.style.setProperty("--brand-accent", state.branding.accentColor || "#8b5cf6");
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+
+    setText("brandTopName", state.branding.name);
+    setText("brandTopSubtitle", state.branding.subtitle);
+    setText("heroCompanyBadge", `${state.branding.company} · Indoor Navigation Prototype`);
+    setText("heroSlogan", state.branding.slogan);
+    setText("heroDescription", state.branding.description);
+    setText("footerBrandName", state.branding.name);
+    setText("footerBrandSubtitle", `${state.branding.subtitle} · demo-ready UI · role-based workflow`);
+
+    // preview
+    setText("brandingPreviewCompany", state.branding.company);
+    setText("brandingPreviewName", state.branding.name);
+    setText("brandingPreviewSubtitle", state.branding.subtitle);
+    setText("brandingPreviewSlogan", state.branding.slogan);
+    setText("brandingPreviewDescription", state.branding.description);
+    const preview = document.getElementById("brandingPreviewCard");
+    if (preview) {
+      preview.style.background = `linear-gradient(135deg,#0f172a 0%,${state.branding.primaryColor || "#2563eb"} 55%,${state.branding.accentColor || "#8b5cf6"} 100%)`;
+    }
+  }
+
+  function openBrandingModal() {
+    const ids = {
+      brandNameInput: "name",
+      brandSubtitleInput: "subtitle",
+      brandSloganInput: "slogan",
+      brandDescriptionInput: "description",
+      brandPrimaryColorInput: "primaryColor",
+      brandAccentColorInput: "accentColor",
+      brandCompanyInput: "company"
+    };
+    Object.entries(ids).forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = state.branding[key] || "";
+    });
+    document.getElementById("brandingModal").style.display = "flex";
+    applyBrandingToUI();
+  }
+
+  function closeBrandingModal() {
+    document.getElementById("brandingModal").style.display = "none";
+  }
+
+  function readBrandingForm() {
+    return {
+      name: document.getElementById("brandNameInput")?.value?.trim() || "LeafNav Studio",
+      subtitle: document.getElementById("brandSubtitleInput")?.value?.trim() || "室內導航工作台",
+      slogan: document.getElementById("brandSloganInput")?.value?.trim() || state.branding.slogan,
+      description: document.getElementById("brandDescriptionInput")?.value?.trim() || state.branding.description,
+      primaryColor: document.getElementById("brandPrimaryColorInput")?.value || "#2563eb",
+      accentColor: document.getElementById("brandAccentColorInput")?.value || "#8b5cf6",
+      company: document.getElementById("brandCompanyInput")?.value?.trim() || "LeafNav Studio"
+    };
+  }
+
+  function saveBranding() {
+    state.branding = readBrandingForm();
+    persistBranding();
+    applyBrandingToUI();
+    addLog("更新品牌設定", state.branding.name);
+    setMessage("已儲存品牌設定。");
+    render();
+  }
+
+  function resetBranding() {
+    state.branding = {
+      name: "LeafNav Studio",
+      subtitle: "室內導航工作台",
+      slogan: "把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台",
+      description: "適合展示、POC、內部測試與現場實驗。支援使用者 / 管理員雙入口、Anchor 與地圖雙向同步、多樓層導航、快照、專案匯入匯出與協作同步。",
+      primaryColor: "#2563eb",
+      accentColor: "#8b5cf6",
+      company: "LeafNav Studio"
+    };
+    persistBranding();
+    openBrandingModal();
+    applyBrandingToUI();
+    addLog("重設品牌設定");
+    setMessage("已恢復預設品牌設定。");
+    render();
+  }
+
+
+
+  async function copyTextFromElement(id, successMessage) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return;
+      await navigator.clipboard.writeText(el.value || el.textContent || "");
+      setMessage(successMessage);
+      addLog("複製部署範本", id);
+    } catch (e) {
+      alert("複製失敗，請手動選取文字。");
+    }
+  }
+
+
+
+  function openDemoModal() {
+    document.getElementById("demoModal").style.display = "flex";
+    updateDemoStatusUI();
+  }
+
+  function closeDemoModal() {
+    document.getElementById("demoModal").style.display = "none";
+  }
+
+  function updateDemoStatusUI() {
+    const el = document.getElementById("demoStatusText");
+    if (el) el.textContent = state.demoStatus || "尚未載入 demo 資料。";
+  }
+
+  function demoFloors(count) {
+    if (count === 1) return ["1F"];
+    if (count === 2) return ["1F", "2F"];
+    return ["1F", "2F", "3F"];
+  }
+
+  function buildDemoData(scenario, floorCount) {
+    const floors = demoFloors(Number(floorCount || 2));
+    const anchors = [];
+    const mapElements = [];
+    const navHistory = [];
+    const snapshots = [];
+
+    floors.forEach((floor, idx) => {
+      const yOffset = 0;
+      // walkable corridors
+      mapElements.push(
+        {
+          id: crypto.randomUUID(),
+          type: "line",
+          name: `${floor} 主走廊 A`,
+          points: [{ x: -18, y: 0 + yOffset }, { x: 18, y: 0 + yOffset }],
+          semantic: "walkable",
+          floor,
+          linkFloor: "",
+          connectorType: "stairs",
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: crypto.randomUUID(),
+          type: "line",
+          name: `${floor} 主走廊 B`,
+          points: [{ x: 0, y: -14 + yOffset }, { x: 0, y: 14 + yOffset }],
+          semantic: "walkable",
+          floor,
+          linkFloor: "",
+          connectorType: "stairs",
+          createdAt: new Date().toISOString()
+        }
+      );
+
+      // restricted / landmarks
+      mapElements.push({
+        id: crypto.randomUUID(),
+        type: "area",
+        name: `${floor} ${scenario === "office" ? "會議區" : scenario === "mall" ? "品牌展示區" : scenario === "campus" ? "實驗教室區" : "診療區"}`,
+        points: [{ x: 6, y: -8 }, { x: 16, y: -8 }, { x: 16, y: -2 }, { x: 6, y: -2 }],
+        semantic: "restricted",
+        floor,
+        linkFloor: "",
+        connectorType: "stairs",
+        createdAt: new Date().toISOString()
+      });
+
+      // anchors
+      anchors.push(
+        {
+          id: crypto.randomUUID(),
+          name: `${floor} 入口`,
+          x: -16,
+          y: 0,
+          heading: 90,
+          floor,
+          payload: `INDOOR_ANCHOR:-16,0,90`,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: crypto.randomUUID(),
+          name: `${floor} 服務台`,
+          x: -6,
+          y: 0,
+          heading: 90,
+          floor,
+          payload: `INDOOR_ANCHOR:-6,0,90`,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: crypto.randomUUID(),
+          name: `${floor} 目標點`,
+          x: 12,
+          y: 10,
+          heading: 0,
+          floor,
+          payload: `INDOOR_ANCHOR:12,10,0`,
+          createdAt: new Date().toISOString()
+        }
+      );
+
+      // connectors between floors
+      if (idx < floors.length - 1) {
+        mapElements.push(
+          {
+            id: crypto.randomUUID(),
+            type: "point",
+            name: `${floor} 電梯`,
+            x: 0,
+            y: 0,
+            semantic: "connector",
+            floor,
+            linkFloor: floors[idx + 1],
+            connectorType: "elevator",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "point",
+            name: `${floor} 樓梯`,
+            x: 10,
+            y: 0,
+            semantic: "connector",
+            floor,
+            linkFloor: floors[idx + 1],
+            connectorType: "stairs",
+            createdAt: new Date().toISOString()
+          }
+        );
+      }
+      if (idx > 0) {
+        mapElements.push(
+          {
+            id: crypto.randomUUID(),
+            type: "point",
+            name: `${floor} 電梯`,
+            x: 0,
+            y: 0,
+            semantic: "connector",
+            floor,
+            linkFloor: floors[idx - 1],
+            connectorType: "elevator",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "point",
+            name: `${floor} 樓梯`,
+            x: 10,
+            y: 0,
+            semantic: "connector",
+            floor,
+            linkFloor: floors[idx - 1],
+            connectorType: "stairs",
+            createdAt: new Date().toISOString()
+          }
+        );
+      }
+    });
+
+    navHistory.push({
+      id: crypto.randomUUID(),
+      targetId: anchors[anchors.length - 1]?.id || "",
+      targetName: anchors[anchors.length - 1]?.name || "目標點",
+      startedAt: Date.now() - 1000 * 60 * 5,
+      endedAt: Date.now() - 1000 * 60 * 2,
+      durationMs: 180000,
+      durationText: "3 分",
+      totalDistance: 42.5,
+      totalDistanceText: "42.5 m",
+      routeMode: "network",
+      waypointCount: 2,
+      status: "arrived"
+    });
+
+    snapshots.push({
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      label: `Demo 初始版本 / ${scenario}`,
+      project: {
+        anchors,
+        mapElements,
+        navHistory,
+        settings: {
+          currentFloor: floors[0],
+          routePreference: "normal",
+          showAnchorOverlay: true,
+          showMapOverlay: true,
+          voiceGuideEnabled: true,
+          snapEnabled: true,
+          autoIntersectEnabled: true,
+          arrivalThreshold: 2,
+          averageWalkingSpeed: 1.15,
+          stepLength: 0.72,
+          autoSnapshotEnabled: true,
+          appRole: "admin",
+          adminUnlocked: true
+        }
+      }
+    });
+
+    return { anchors, mapElements, navHistory, snapshots, floors };
+  }
+
+  function loadDemoProject() {
+    const name = document.getElementById("demoProjectName")?.value?.trim() || "LeafNav Demo Building";
+    const floorCount = Number(document.getElementById("demoFloorCount")?.value || 2);
+    const scenario = document.getElementById("demoScenarioSelect")?.value || "office";
+
+    maybeCreateAutoSnapshot("載入 Demo 專案前");
+
+    const data = buildDemoData(scenario, floorCount);
+    state.savedAnchors = data.anchors;
+    state.mapElements = data.mapElements;
+    state.navHistory = data.navHistory;
+    state.snapshots = data.snapshots.concat(state.snapshots || []).slice(0, 30);
+    state.currentFloor = data.floors[0] || "1F";
+    state.appRole = "admin";
+    state.adminUnlocked = true;
+
+    localStorage.setItem("indoor_saved_anchors", JSON.stringify(state.savedAnchors));
+    localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
+    localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
+    localStorage.setItem("indoor_project_snapshots", JSON.stringify(state.snapshots));
+    localStorage.setItem("indoor_app_role", "admin");
+    localStorage.setItem("indoor_admin_unlocked", "true");
+
+    state.demoLoaded = true;
+    state.demoStatus = `已載入 ${name} / ${scenario} / ${floorCount} 樓 Demo。`;
+
+    addLog("載入 Demo 專案", `${name} / ${scenario} / ${floorCount}樓`);
+    renderSavedAnchors();
+    renderMapElements();
+    renderNavHistory();
+    renderSnapshots();
+    render();
+    setMessage(state.demoStatus);
+  }
+
+  function startDemoTour() {
+    if (!state.demoLoaded) {
+      loadDemoProject();
+    }
+    switchPage("homePage");
+    setMessage("Demo 展示導覽已準備完成。你可以先展示首頁，再切到導航、QR、地圖編輯。");
+    addLog("開始 Demo 導覽");
+    render();
   }
 
 
@@ -3695,6 +4468,9 @@
     drawTrack();
     drawEditorCanvas();
     renderMapElements();
+    applyBrandingToUI();
+    updateDemoStatusUI();
+    renderHomeSummary();
     applyRoleVisibility();
   }
 
@@ -4402,6 +5178,10 @@
   $("btnCreateSnapshot").addEventListener("click", () => createSnapshot("")); 
   $("btnOpenSnapshots").addEventListener("click", openSnapshotModal);
   $("appRoleSelect").addEventListener("change", (e) => setAppRole(e.target.value));
+  $("btnEnterUserMode").addEventListener("click", enterUserModeFromHome);
+  $("btnGoNavigation").addEventListener("click", () => { switchPage("navPage"); render(); });
+  $("btnEnterAdminMode").addEventListener("click", enterAdminModeFromHome);
+  $("btnOpenAuthFromHome").addEventListener("click", openAuthModal);
   $("btnOpenAuth").addEventListener("click", openAuthModal);
   $("btnCloseAuth").addEventListener("click", closeAuthModal);
   $("btnSetAdminPassword").addEventListener("click", setAdminPassword);
@@ -4411,6 +5191,24 @@
   $("btnFirebaseLogout").addEventListener("click", firebaseLogout);
   $("btnOpenLog").addEventListener("click", openLogModal);
   $("btnCloseLog").addEventListener("click", closeLogModal);
+  $("btnCopyFirestoreRules").addEventListener("click", () => copyTextFromElement("firestoreRulesTemplate", "已複製 Firestore 規則範本。"));
+  $("btnCopyFirebaseConfig").addEventListener("click", () => copyTextFromElement("firebaseConfigTemplate", "已複製 Firebase Config 範本。"));
+  $("btnOpenDemo").addEventListener("click", openDemoModal);
+  $("btnCloseDemo").addEventListener("click", closeDemoModal);
+  $("btnLoadDemoProject").addEventListener("click", loadDemoProject);
+  $("btnStartDemoTour").addEventListener("click", startDemoTour);
+  $("btnOpenBranding").addEventListener("click", openBrandingModal);
+  $("btnCloseBranding").addEventListener("click", closeBrandingModal);
+  $("btnSaveBranding").addEventListener("click", saveBranding);
+  $("btnResetBranding").addEventListener("click", resetBranding);
+  ["brandNameInput","brandSubtitleInput","brandSloganInput","brandDescriptionInput","brandPrimaryColorInput","brandAccentColorInput","brandCompanyInput"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", () => {
+      const next = readBrandingForm();
+      state.branding = { ...state.branding, ...next };
+      applyBrandingToUI();
+    });
+  });
   $("btnOpenCollab").addEventListener("click", openCollabModal);
   $("btnCloseCollab").addEventListener("click", closeCollabModal);
   $("btnSaveCollabSettings").addEventListener("click", saveCollabSettings);
@@ -4511,6 +5309,7 @@
   generateQr();
   loadAppRole();
   loadAuthState();
+  loadBranding();
   loadSavedAnchors();
   loadNavHistory();
   loadMapElements();
