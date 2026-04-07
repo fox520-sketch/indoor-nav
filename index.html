@@ -228,6 +228,8 @@
             <button id="btnStart">開始追蹤</button>
             <button id="btnStop">停止追蹤</button>
             <button class="secondary" id="btnExport">匯出 JSON</button>
+            <button class="secondary" id="btnStepCal">10 步步長校正</button>
+            <button class="secondary" id="btnQrCal">QR 校正點</button>
             <a class="download-link" id="downloadLink" style="display:none;">下載匯出檔</a>
             <button class="danger" id="btnReset">清空資料</button>
           </div>
@@ -292,6 +294,7 @@
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
 (() => {
   const SAMPLE_MS = 250;
@@ -302,6 +305,7 @@
   const STEP_DEBOUNCE_MS = 320;
   const STEP_SMOOTHING = 0.22;
   const MIN_GPS_ACCURACY_METERS = 20;
+  const QR_TARGET_PREFIX = "INDOOR_ANCHOR:";
   const TRACK_SIZE = 560;
   const CENTER = TRACK_SIZE / 2;
   const SCALE = 8;
@@ -326,7 +330,11 @@
     lastStepAt: 0,
     motionMagnitude: 0,
     smoothedMagnitude: 0,
-    exportUrl: ""
+    exportUrl: "",
+    calibratingStepLength: false,
+    stepCalStart: 0,
+    qrScanMode: false,
+    qrStream: null
   };
 
   let geoWatchId = null;
@@ -572,6 +580,7 @@
       };
       state.currentPose = next;
       state.trail.push(next);
+      maybeFinishStepCalibration();
     }
     render();
   }
@@ -792,6 +801,115 @@
     setMessage("已產生 JSON 匯出檔，可下載目前軌跡與校正資料。");
   }
 
+
+  function beginStepLengthCalibration() {
+    if (state.calibratingStepLength) return;
+    state.calibratingStepLength = true;
+    state.stepCalStart = state.stepCount;
+    setMessage("開始 10 步步長校正：請正常走 10 步，系統會自動計算步長。");
+    render();
+  }
+
+  function maybeFinishStepCalibration() {
+    if (!state.calibratingStepLength) return;
+    const walked = state.stepCount - state.stepCalStart;
+    if (walked >= 10) {
+      const meters = Number(prompt("請輸入你剛剛 10 步實際走了幾公尺（例如 7.2）", "7.2"));
+      if (Number.isFinite(meters) && meters > 0) {
+        state.stepLength = meters / 10;
+        document.getElementById("stepLength").value = String(Math.min(1.0, Math.max(0.4, state.stepLength)));
+        setMessage(`步長校正完成：新步長 ${fmt(state.stepLength, 2)} m/步。`);
+      } else {
+        setMessage("步長校正取消：輸入不是有效距離。");
+      }
+      state.calibratingStepLength = false;
+      render();
+    }
+  }
+
+  async function openQrCalibration() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMessage("此瀏覽器不支援相機掃描。");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      state.qrStream = stream;
+      const modal = document.getElementById("qrModal");
+      const video = document.getElementById("qrVideo");
+      video.srcObject = stream;
+      await video.play();
+      modal.style.display = "flex";
+      state.qrScanMode = true;
+      setMessage("請把 QR 對準鏡頭。");
+      requestAnimationFrame(scanQrFrame);
+    } catch (e) {
+      setMessage("無法開啟相機：" + e.message);
+    }
+  }
+
+  function closeQrCalibration() {
+    state.qrScanMode = false;
+    const modal = document.getElementById("qrModal");
+    modal.style.display = "none";
+    const video = document.getElementById("qrVideo");
+    if (state.qrStream) {
+      state.qrStream.getTracks().forEach(t => t.stop());
+      state.qrStream = null;
+    }
+    video.srcObject = null;
+  }
+
+  function applyQrAnchor(text) {
+    if (!text.startsWith(QR_TARGET_PREFIX)) return false;
+    const payload = text.slice(QR_TARGET_PREFIX.length).trim();
+    const parts = payload.split(",").map(s => Number(s.trim()));
+    if (parts.length < 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) return false;
+    const target = { x: parts[0], y: parts[1], heading: Number.isFinite(parts[2]) ? normalizeAngle(parts[2]) : null };
+    const before = latestPose();
+    const dx = target.x - before.x;
+    const dy = target.y - before.y;
+    state.trail = state.trail.map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
+    state.currentPose = { ...state.currentPose, x: state.currentPose.x + dx, y: state.currentPose.y + dy };
+    if (target.heading != null) {
+      const delta = angleDelta(target.heading, before.heading ?? state.currentPose.heading);
+      state.trail = state.trail.map((p) => {
+        const rotated = rotatePoint(p, delta);
+        return { ...p, x: rotated.x, y: rotated.y, heading: normalizeAngle((p.heading ?? 0) + delta) };
+      });
+      const rp = rotatePoint(state.currentPose, delta);
+      state.currentPose = { ...state.currentPose, x: rp.x, y: rp.y, heading: normalizeAngle((state.currentPose.heading ?? 0) + delta) };
+      state.corrections.unshift({ id: crypto.randomUUID(), type: "qr", beforeX: before.x, beforeY: before.y, afterX: target.x, afterY: target.y, beforeHeading: before.heading, afterHeading: target.heading, ts: Date.now() });
+    } else {
+      state.corrections.unshift({ id: crypto.randomUUID(), type: "qr", beforeX: before.x, beforeY: before.y, afterX: target.x, afterY: target.y, ts: Date.now() });
+    }
+    setMessage("已套用 QR 校正點。");
+    render();
+    return true;
+  }
+
+  function scanQrFrame() {
+    if (!state.qrScanMode) return;
+    const video = document.getElementById("qrVideo");
+    if (video.readyState >= 2 && typeof jsQR !== "undefined") {
+      const c = document.createElement("canvas");
+      c.width = video.videoWidth || 640;
+      c.height = video.videoHeight || 480;
+      const cctx = c.getContext("2d");
+      cctx.drawImage(video, 0, 0, c.width, c.height);
+      const img = cctx.getImageData(0, 0, c.width, c.height);
+      const code = jsQR(img.data, img.width, img.height);
+      if (code && code.data) {
+        if (applyQrAnchor(code.data)) {
+          closeQrCalibration();
+          return;
+        }
+      }
+    }
+    requestAnimationFrame(scanQrFrame);
+  }
+
+
   $("btnPermission").addEventListener("click", requestPermissions);
   $("btnAnchor").addEventListener("click", setCurrentGpsAsAnchor);
   $("btnStart").addEventListener("click", startTracking);
@@ -800,6 +918,9 @@
   $("btnPosCorrection").addEventListener("click", beginPositionCorrection);
   $("btnHeadingCorrection").addEventListener("click", beginHeadingCorrection);
   $("btnExport").addEventListener("click", exportData);
+  $("btnStepCal").addEventListener("click", beginStepLengthCalibration);
+  $("btnQrCal").addEventListener("click", openQrCalibration);
+  $("btnQrClose").addEventListener("click", closeQrCalibration);
   $("stepLength").addEventListener("input", (e) => {
     state.stepLength = Number(e.target.value);
     render();
@@ -811,5 +932,17 @@
   render();
 })();
 </script>
+
+  <div id="qrModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(92vw,520px); border-radius:16px; padding:14px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong>掃描 QR 校正點</strong>
+        <button id="btnQrClose" style="border:1px solid #dbe3ee; border-radius:12px; padding:6px 10px; background:#fff;">關閉</button>
+      </div>
+      <video id="qrVideo" playsinline style="width:100%; border-radius:12px; background:#000;"></video>
+      <div style="font-size:12px; color:#64748b; margin-top:8px;">QR 內容格式：INDOOR_ANCHOR:x,y,heading（例如 INDOOR_ANCHOR:12.4,-3.2,90）</div>
+    </div>
+  </div>
+
 </body>
 </html>
