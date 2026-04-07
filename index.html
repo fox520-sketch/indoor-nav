@@ -291,6 +291,26 @@
   <div class="topbar">
     <div class="topbar-inner">
       <strong>室內導航工具箱</strong>
+      <div class="btns" style="margin:0;">
+        <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#334155; background:#fff; border:1px solid #dbe3ee; border-radius:999px; padding:8px 10px;">
+          模式
+          <select id="appRoleSelect" style="border:none; background:transparent; font-size:13px; outline:none;">
+            <option value="admin">管理員</option>
+            <option value="user">使用者</option>
+          </select>
+        </label>
+        <button id="btnOpenAuth">管理員登入</button>
+        <button id="btnExportProject">匯出專案</button>
+        <button id="btnImportProject">匯入專案</button>
+        <button id="btnCreateSnapshot">建立快照</button>
+        <button id="btnOpenSnapshots">快照</button>
+        <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#334155; background:#fff; border:1px solid #dbe3ee; border-radius:999px; padding:8px 10px;">
+          <input id="toggleAutoSnapshot" type="checkbox" checked /> 自動快照
+        </label>
+        <button id="btnOpenLog">操作紀錄</button>
+        <button id="btnOpenCollab">協作同步</button>
+        <input id="importProjectFile" type="file" accept="application/json" style="display:none;" />
+      </div>
       <div class="navtabs">
         <button class="tabbtn active" data-page="navPage">導航</button>
         <button class="tabbtn" data-page="qrPage">QR 產生器</button>
@@ -315,6 +335,8 @@
             <div class="alert" id="messageBox">先授權感測器與定位，再開始追蹤。</div>
 
             <div class="alert" id="guidanceBanner" style="background:#fff7ed; border-color:#fed7aa;">尚未開始導航。</div>
+
+            <div class="alert" id="roleModeBanner" style="display:none; background:#eff6ff; border-color:#bfdbfe;">目前是使用者模式：僅顯示導航功能，地圖編輯與專案管理已隱藏。</div>
 
             <div class="btn-row">
               <button class="primary" id="btnPermission">授權感測器與定位</button>
@@ -476,6 +498,15 @@
                 </select>
               </div>
               <div class="row">
+                <label for="routePreferenceSelect">路線偏好</label>
+                <select id="routePreferenceSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="normal">一般</option>
+                  <option value="elevator">電梯優先</option>
+                  <option value="stairs">樓梯優先</option>
+                  <option value="accessible">無障礙</option>
+                </select>
+              </div>
+              <div class="row">
                 <label for="routeWaypointsSelect">中繼校正點（多選）</label>
                 <select id="routeWaypointsSelect" multiple size="6" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;"></select>
                 <div class="subtle">按住 Ctrl / Command 可多選。手機上可先不選，之後用快速按鈕加入。若選「沿線段自動找路」，系統會優先沿地圖編輯裡的線段規劃。</div>
@@ -513,6 +544,12 @@
               <p>3. 按「開始追蹤」後再走動。</p>
               <p>4. 訊號好時做位置校正，固定手機做方向校正。</p>
               <p>5. 也可以切到上方「QR 產生器」頁做 QR 校正點。</p>
+              <p>6. 右上角可匯出 / 匯入整個專案檔，方便備份或換裝置。</p>
+              <p>7. 現在也支援快照 / 復原點，編輯地圖前可先存一版。</p>
+              <p>8. 開啟自動快照後，匯入專案、清空資料、同步大量資料前都會自動留底。</p>
+              <p>9. 右上角的協作同步可接 Firebase Firestore，讓多支手機即時共享同一套資料。</p>
+              <p>10. 現在支援管理員 / 使用者模式切換，使用者模式只保留簡化導航功能。</p>
+              <p>11. 管理員模式現在可用本地密碼或 Firebase Email Sign-in 雛形解鎖。</p>
             </div>
           </section>
         </div>
@@ -649,6 +686,15 @@
                   <option value="wall">牆 / 障礙</option>
                   <option value="restricted">限制區域</option>
                   <option value="landmark">地標</option>
+                  <option value="connector">樓梯 / 電梯連接</option>
+                </select>
+              </div>
+              <div style="margin-top:10px;" class="row">
+                <label for="editorConnectorType">connector 類型</label>
+                <select id="editorConnectorType" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="stairs">樓梯</option>
+                  <option value="elevator">電梯</option>
+                  <option value="ramp">坡道</option>
                 </select>
               </div>
               <div class="subtle">新增點位時會以這個名稱建立標記。新增線段/區域時會以這個名稱記錄元素，並附帶可通行/牆/限制區域等語義。</div>
@@ -721,6 +767,14 @@
                     <option value="B1">B1</option>
                   </select>
                 </div>
+                <div class="row">
+                  <label for="selectedMapElementConnectorType">connector 類型</label>
+                  <select id="selectedMapElementConnectorType" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                    <option value="stairs">樓梯</option>
+                    <option value="elevator">電梯</option>
+                    <option value="ramp">坡道</option>
+                  </select>
+                </div>
                 <div class="btns" style="margin-bottom:0;">
                   <button id="btnUpdateSelectedMapElement">更新名稱</button>
                   <button id="btnConvertSelectedToAnchor" class="secondary">轉成 Anchor</button>
@@ -745,11 +799,150 @@
               <p>7. 啟用吸附與交點節點化後，路網會更容易連通，找路更穩。</p>
               <p>8. 把線段或區域標成牆 / 限制區域後，路徑規劃會盡量避開。</p>
               <p>9. 現在支援多樓層：點、線、區域、Anchor 都能指定樓層，connector 點可連接到其他樓層。</p>
+              <p>10. 多樓層導航現在支援一般 / 電梯優先 / 樓梯優先 / 無障礙偏好。</p>
             </div>
           </section>
         </div>
       </div>
     </div>
+
+
+
+
+
+
+  <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(92vw,520px); border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong>管理員登入 / 權限驗證</strong>
+        <button id="btnCloseAuth">關閉</button>
+      </div>
+      <div class="subtle" style="margin-top:0; margin-bottom:12px;">
+        這是前端權限雛形。你可以先用本地管理員密碼保護管理員模式；若已設定 Firebase config，也可啟用 Firebase Email Sign-in 雛形。
+      </div>
+
+      <div class="formbox" style="margin-bottom:12px;">
+        <div class="row">
+          <label for="adminPasswordInput">本地管理員密碼</label>
+          <input id="adminPasswordInput" type="password" placeholder="輸入管理員密碼" />
+        </div>
+        <div class="btns" style="margin-bottom:0;">
+          <button id="btnUnlockAdmin" class="primary">解鎖管理員模式</button>
+          <button id="btnLockAdmin" class="secondary">鎖定回使用者模式</button>
+          <button id="btnSetAdminPassword">設定 / 更新密碼</button>
+        </div>
+      </div>
+
+      <div class="formbox">
+        <div><strong>Firebase Auth 雛形</strong></div>
+        <div class="subtle" style="margin-top:8px; margin-bottom:10px;">
+          若你的 Firebase 專案已啟用 Authentication 與 Email/Password provider，可用下面方式登入。這版是 prototype，主要用來驗證流程。
+        </div>
+        <div class="row">
+          <label for="authEmailInput">Email</label>
+          <input id="authEmailInput" type="email" placeholder="admin@example.com" />
+        </div>
+        <div class="row">
+          <label for="authPasswordInput">Password</label>
+          <input id="authPasswordInput" type="password" placeholder="Firebase Auth 密碼" />
+        </div>
+        <div class="btns" style="margin-bottom:0;">
+          <button id="btnFirebaseLogin">Firebase 登入</button>
+          <button id="btnFirebaseLogout" class="secondary">Firebase 登出</button>
+        </div>
+      </div>
+
+      <div class="alert" id="authStatusBanner" style="margin-top:12px; background:#f8fafc;">尚未登入管理員。</div>
+    </div>
+  </div>
+
+  <div id="collabModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,860px); max-height:84vh; overflow:auto; border-radius:16px; padding:14px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:12px; flex-wrap:wrap;">
+        <strong>即時協作同步（Firebase / Firestore）</strong>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="badge" id="collabStatusBadge">idle</span>
+          <button id="btnCloseCollab">關閉</button>
+        </div>
+      </div>
+      <div class="subtle" style="margin-top:0; margin-bottom:12px;">
+        這個模式可讓兩支以上手機透過同一個 Firebase Firestore room 即時同步 Anchor、地圖元素、導航歷史、快照、操作紀錄與主要設定。
+        你需要先建立自己的 Firebase 專案，並把 Web config JSON 貼進來。
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:14px;">
+        <div class="formbox">
+          <div class="row">
+            <label for="collabRoomId">Room ID</label>
+            <input id="collabRoomId" type="text" placeholder="例如 building-a-demo" />
+          </div>
+          <div class="row">
+            <label for="collabConfigText">Firebase Web Config JSON</label>
+            <textarea id="collabConfigText" style="min-height:220px;" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+          </div>
+          <div class="btns" style="margin-bottom:0;">
+            <button id="btnConnectCollab" class="primary">連線同步</button>
+            <button id="btnDisconnectCollab" class="secondary">中斷同步</button>
+            <button id="btnSaveCollabSettings">儲存設定</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="card-header" style="padding:0 0 10px 0;"><h3>使用步驟</h3></div>
+          <div class="card-content" style="padding:0;">
+            <div class="hint">
+              <p>1. 到 Firebase 建一個專案，開啟 Firestore。</p>
+              <p>2. 在 Project settings 建立 Web app，複製 config JSON。</p>
+              <p>3. 把 config JSON 貼進這裡，再輸入同一個 Room ID。</p>
+              <p>4. 兩台手機都按「連線同步」，之後修改資料會近即時同步。</p>
+              <p>5. 建議搭配右上角快照功能，避免多人測試時誤改。</p>
+            </div>
+            <div class="formbox" style="margin-top:12px;">
+              <div><strong>目前同步內容</strong></div>
+              <div class="subtle" style="margin-top:8px;">
+                anchors、mapElements、navHistory、snapshots、logs、settings
+              </div>
+            </div>
+            <div class="formbox" style="margin-top:12px;">
+              <div><strong>注意</strong></div>
+              <div class="subtle" style="margin-top:8px;">
+                這是前端直連 Firestore 的協作模式。請用你自己的 Firebase 專案，並自行設定 Firestore 安全規則。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="logModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,760px); max-height:84vh; overflow:auto; border-radius:16px; padding:14px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong>操作紀錄</strong>
+        <button id="btnCloseLog">關閉</button>
+      </div>
+      <div id="logList" class="list"></div>
+    </div>
+  </div>
+
+  <div id="snapshotModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,760px); max-height:84vh; overflow:auto; border-radius:16px; padding:14px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:12px;">
+        <strong>專案快照 / 復原點</strong>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="btnExportSnapshots" style="border:1px solid #dbe3ee; border-radius:12px; padding:6px 10px; background:#fff;">匯出快照</button>
+          <button id="btnImportSnapshots" style="border:1px solid #dbe3ee; border-radius:12px; padding:6px 10px; background:#fff;">匯入快照</button>
+          <input id="importSnapshotsFile" type="file" accept="application/json" style="display:none;" />
+          <button id="btnClearSnapshots" style="border:1px solid #fecaca; color:#b91c1c; border-radius:12px; padding:6px 10px; background:#fff;">清空快照</button>
+          <button id="btnCloseSnapshots" style="border:1px solid #dbe3ee; border-radius:12px; padding:6px 10px; background:#fff;">關閉</button>
+        </div>
+      </div>
+      <div style="font-size:12px; color:#64748b; margin-bottom:10px;">每次建立快照會保存目前的 Anchor、地圖元素、導航歷史與設定。可隨時復原。</div>
+      <div id="snapshotList" class="list" style="max-height:64vh;">
+        <div class="item">尚無快照。</div>
+      </div>
+    </div>
+  </div>
 
 
   <div id="qrModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; align-items:center; justify-content:center;">
@@ -834,7 +1027,24 @@
     snapEnabled: true,
     autoIntersectEnabled: true,
     snapThreshold: 1.2,
-    currentFloor: "1F"
+    currentFloor: "1F",
+    routePreference: "normal",
+    snapshots: [],
+    autoSnapshotEnabled: true,
+    logs: [],
+    collabStatus: "idle",
+    collabRoomId: "",
+    collabConfigText: "",
+    collabDirty: false,
+    applyingRemote: false,
+    collabDb: null,
+    collabUnsub: null,
+    lastRemoteTs: 0,
+    lastPushedTs: 0,
+    appRole: "admin",
+    adminUnlocked: false,
+    firebaseAuthStatus: "idle",
+    firebaseUserEmail: ""
   };
 
   let geoWatchId = null;
@@ -948,7 +1158,7 @@
       if (el.type === "point") {
         const x = CENTER + Number(el.x || 0) * SCALE;
         const y = CENTER + Number(el.y || 0) * SCALE;
-        ctx.fillStyle = isSelected ? "#ef4444" : (semantic === "landmark" ? "#0ea5e9" : semantic === "restricted" ? "#f59e0b" : "#059669");
+        ctx.fillStyle = isSelected ? "#ef4444" : (semantic === "connector" ? "#8b5cf6" : semantic === "landmark" ? "#0ea5e9" : semantic === "restricted" ? "#f59e0b" : "#059669");
         ctx.beginPath();
         ctx.arc(x, y, 5, 0, Math.PI * 2);
         ctx.fill();
@@ -1245,7 +1455,7 @@
       return;
     }
 
-    summary.textContent = `目標：${target.name} [${target.floor || currentNavFloor()}]；總距離約 ${fmt(totalDist, 1)} m${via}；下一點 ${active.to.name || "目標"}，距離約 ${fmt(nextDist, 1)} m；建議 ${turnText}。`;
+    summary.textContent = `目標：${target.name} [${target.floor || currentNavFloor()}]；偏好：${routePreferenceLabel(state.routePreference)}；總距離約 ${fmt(totalDist, 1)} m${via}；下一點 ${active.to.name || "目標"}，距離約 ${fmt(nextDist, 1)} m；建議 ${turnText}。`;
   }
 
   function setRouteMode() {
@@ -1577,7 +1787,8 @@
     renderNavHistory();
   }
 
-  function persistNavHistory() {
+  function persistNavHistory()
+    markCollabDirty(); {
     localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
     renderNavHistory();
   }
@@ -1718,7 +1929,8 @@
     renderMapElements();
   }
 
-  function persistMapElements() {
+  function persistMapElements()
+    markCollabDirty(); {
     localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
     renderMapElements();
     drawEditorCanvas();
@@ -1791,6 +2003,7 @@
         semantic: currentEditorSemantic(),
         floor: currentEditorFloor(),
         linkFloor: "",
+        connectorType: $("editorConnectorType")?.value || "stairs",
         createdAt: now
       });
       setEditorMessage(`已新增點位：${name} (${world.x.toFixed(1)}, ${world.y.toFixed(1)})`);
@@ -1818,6 +2031,7 @@
         semantic: currentEditorSemantic(),
         floor: currentEditorFloor(),
         linkFloor: "",
+        connectorType: $("editorConnectorType")?.value || "stairs",
         createdAt: now
       });
       state.editorDraftPoints = [];
@@ -1845,6 +2059,7 @@
         semantic: currentEditorSemantic(),
         floor: currentEditorFloor(),
         linkFloor: "",
+        connectorType: $("editorConnectorType")?.value || "stairs",
         createdAt: now
       });
       state.editorDraftPoints = [];
@@ -1963,8 +2178,8 @@
         </div>
         ${
           m.type === "point"
-            ? `<div>floor: ${m.floor || "1F"}${m.linkFloor ? ` -> ${m.linkFloor}` : ""}</div><div>x: ${m.x} / y: ${m.y}</div>`
-            : `<div>floor: ${m.floor || "1F"}${m.linkFloor ? ` -> ${m.linkFloor}` : ""}</div><div>points: ${(m.points || []).map(p => `(${p.x}, ${p.y})`).join(" -> ")}</div>`
+            ? `<div>floor: ${m.floor || "1F"}${m.linkFloor ? ` -> ${m.linkFloor}` : ""}${m.connectorType ? ` / ${m.connectorType}` : ""}</div><div>x: ${m.x} / y: ${m.y}</div>`
+            : `<div>floor: ${m.floor || "1F"}${m.linkFloor ? ` -> ${m.linkFloor}` : ""}${m.connectorType ? ` / ${m.connectorType}` : ""}</div><div>points: ${(m.points || []).map(p => `(${p.x}, ${p.y})`).join(" -> ")}</div>`
         }
         <div class="btns" style="margin-top:10px; margin-bottom:0;">
           <button data-map-select="${m.id}">選取</button>
@@ -2057,6 +2272,7 @@
     if ($("selectedMapElementSemantic")) $("selectedMapElementSemantic").value = el ? (el.semantic || "walkable") : "walkable";
     if ($("selectedMapElementFloor")) $("selectedMapElementFloor").value = el ? (el.floor || "1F") : "1F";
     if ($("selectedMapElementLinkFloor")) $("selectedMapElementLinkFloor").value = el ? (el.linkFloor || "") : "";
+    if ($("selectedMapElementConnectorType")) $("selectedMapElementConnectorType").value = el ? (el.connectorType || "stairs") : "stairs";
     if (el) {
       setEditorMessage(`已選取元素：${el.name || "未命名"} (${el.type})`);
     }
@@ -2073,10 +2289,12 @@
     const semantic = $("selectedMapElementSemantic").value || "walkable";
     const floor = $("selectedMapElementFloor").value || "1F";
     const linkFloor = $("selectedMapElementLinkFloor").value || "";
+    const connectorType = $("selectedMapElementConnectorType").value || "stairs";
     el.name = name;
     el.semantic = semantic;
     el.floor = floor;
     el.linkFloor = linkFloor;
+    el.connectorType = connectorType;
     persistMapElements();
     setEditorMessage(`已更新元素名稱：${name}`);
     render();
@@ -2151,7 +2369,8 @@
     } else {
       state.savedAnchors.unshift(anchor);
     }
-    persistSavedAnchors();
+    persistSavedAnchors()
+    markCollabDirty();;
     return true;
   }
 
@@ -2235,6 +2454,7 @@
       alert("目前沒有可同步的 Anchor。");
       return;
     }
+    maybeCreateAutoSnapshot("同步全部 Anchor 到地圖前");
     state.savedAnchors.forEach((a) => {
       const existing = state.mapElements.find(
         (m) => m.type === "point" && (m.anchorId === a.id || (m.source === "anchor" && m.name === a.name))
@@ -2252,7 +2472,7 @@
       }
     });
     persistMapElements();
-    setMessage(`已同步 ${state.savedAnchors.length} 個 Anchor 到地圖。`);
+    addLog("同步 Anchor"); setMessage(`已同步 ${state.savedAnchors.length} 個 Anchor 到地圖。`);
     render();
   }
 
@@ -2324,9 +2544,11 @@
       .forEach((p) => {
         const a = ensureNode({ x: Number(p.x || 0), y: Number(p.y || 0) }, p.floor || "1F");
         const b = ensureNode({ x: Number(p.x || 0), y: Number(p.y || 0) }, p.linkFloor);
-        const w = floorDistancePenalty(a.floor, b.floor) || 8;
-        edges.get(a.key).push({ to: b.key, weight: w });
-        edges.get(b.key).push({ to: a.key, weight: w });
+        const w = connectorPenalty(p.connectorType || "stairs", state.routePreference) + floorDistancePenalty(a.floor, b.floor);
+        if (w < 9999) {
+          edges.get(a.key).push({ to: b.key, weight: w });
+          edges.get(b.key).push({ to: a.key, weight: w });
+        }
       });
 
     return { nodes: Array.from(nodesMap.values()), edges, nodesMap };
@@ -2663,14 +2885,766 @@
   }
 
 
+
+  function currentRoutePreference() {
+    return $("routePreferenceSelect")?.value || state.routePreference || "normal";
+  }
+
+  function connectorPenalty(type, preference) {
+    const t = type || "stairs";
+    const pref = preference || state.routePreference || "normal";
+
+    if (pref === "normal") {
+      if (t === "elevator") return 10;
+      if (t === "stairs") return 8;
+      if (t === "ramp") return 9;
+      return 8;
+    }
+    if (pref === "elevator") {
+      if (t === "elevator") return 5;
+      if (t === "stairs") return 18;
+      if (t === "ramp") return 9;
+      return 12;
+    }
+    if (pref === "stairs") {
+      if (t === "stairs") return 5;
+      if (t === "elevator") return 18;
+      if (t === "ramp") return 9;
+      return 12;
+    }
+    if (pref === "accessible") {
+      if (t === "ramp") return 5;
+      if (t === "elevator") return 7;
+      if (t === "stairs") return 9999;
+      return 12;
+    }
+    return 8;
+  }
+
+  function routePreferenceLabel(pref) {
+    return pref === "elevator" ? "電梯優先" :
+           pref === "stairs" ? "樓梯優先" :
+           pref === "accessible" ? "無障礙" : "一般";
+  }
+
+
+
+  function buildProjectPayload() {
+    return {
+      exportedAt: new Date().toISOString(),
+      version: 1,
+      projectType: "indoor-navigation-toolbox",
+      settings: {
+        currentFloor: state.currentFloor,
+        routePreference: state.routePreference,
+        showAnchorOverlay: state.showAnchorOverlay,
+        showMapOverlay: state.showMapOverlay,
+        voiceGuideEnabled: state.voiceGuideEnabled,
+        snapEnabled: state.snapEnabled,
+        autoIntersectEnabled: state.autoIntersectEnabled,
+        arrivalThreshold: state.arrivalThreshold,
+        averageWalkingSpeed: state.averageWalkingSpeed,
+        stepLength: state.stepLength,
+        autoSnapshotEnabled: state.autoSnapshotEnabled,
+        appRole: state.appRole,
+        adminUnlocked: state.adminUnlocked
+      },
+      anchors: state.savedAnchors,
+      mapElements: state.mapElements,
+      navHistory: state.navHistory
+    };
+  }
+
+  function exportProjectData() {
+    const payload = buildProjectPayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `indoor-project-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setMessage("已匯出整個專案檔。"); addLog("匯出專案");
+  }
+
+  async function importProjectData(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      const anchors = Array.isArray(data.anchors) ? data.anchors : [];
+      const mapElements = Array.isArray(data.mapElements) ? data.mapElements : [];
+      const navHistory = Array.isArray(data.navHistory) ? data.navHistory : [];
+      const settings = data.settings || {};
+
+      maybeCreateAutoSnapshot("匯入專案前");
+      state.savedAnchors = anchors;
+      state.mapElements = mapElements;
+      state.navHistory = navHistory;
+
+      if (settings.currentFloor) state.currentFloor = settings.currentFloor;
+      if (settings.routePreference) state.routePreference = settings.routePreference;
+      if (typeof settings.showAnchorOverlay === "boolean") state.showAnchorOverlay = settings.showAnchorOverlay;
+      if (typeof settings.showMapOverlay === "boolean") state.showMapOverlay = settings.showMapOverlay;
+      if (typeof settings.voiceGuideEnabled === "boolean") state.voiceGuideEnabled = settings.voiceGuideEnabled;
+      if (typeof settings.snapEnabled === "boolean") state.snapEnabled = settings.snapEnabled;
+      if (typeof settings.autoIntersectEnabled === "boolean") state.autoIntersectEnabled = settings.autoIntersectEnabled;
+      if (Number.isFinite(Number(settings.arrivalThreshold))) state.arrivalThreshold = Number(settings.arrivalThreshold);
+      if (Number.isFinite(Number(settings.averageWalkingSpeed))) state.averageWalkingSpeed = Number(settings.averageWalkingSpeed);
+      if (Number.isFinite(Number(settings.stepLength))) state.stepLength = Number(settings.stepLength);
+      if (typeof settings.autoSnapshotEnabled === "boolean") state.autoSnapshotEnabled = settings.autoSnapshotEnabled;
+      if (settings.appRole) state.appRole = settings.appRole;
+      if (typeof settings.adminUnlocked === "boolean") state.adminUnlocked = settings.adminUnlocked;
+
+      localStorage.setItem("indoor_saved_anchors", JSON.stringify(state.savedAnchors));
+      localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
+      localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
+
+      renderSavedAnchors();
+      renderMapElements();
+      renderNavHistory();
+      render();
+      addLog("匯入專案"); setMessage(`已匯入專案檔：${anchors.length} 個 Anchor、${mapElements.length} 個地圖元素、${navHistory.length} 筆導航歷史。`);
+    } catch (e) {
+      alert("匯入專案失敗：" + e.message);
+    }
+  }
+
+
+
+  function snapshotStoragePayload(label = "") {
+    return {
+      id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
+      createdAt: new Date().toISOString(),
+      label: label || `快照 ${new Date().toLocaleString()}`,
+      project: buildProjectPayload()
+    };
+  }
+
+  function loadSnapshots() {
+    try {
+      const raw = localStorage.getItem("indoor_project_snapshots");
+      state.snapshots = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(state.snapshots)) state.snapshots = [];
+    } catch (e) {
+      state.snapshots = [];
+    }
+    renderSnapshots();
+  }
+
+  function persistSnapshots()
+    markCollabDirty(); {
+    localStorage.setItem("indoor_project_snapshots", JSON.stringify(state.snapshots));
+    renderSnapshots();
+  }
+
+  function createSnapshot(customLabel = "") {
+    const label = customLabel || prompt("輸入這次快照名稱", `快照 ${new Date().toLocaleString()}`) || "";
+    const snap = snapshotStoragePayload(label.trim());
+    state.snapshots.unshift(snap);
+    if (state.snapshots.length > 30) {
+      state.snapshots = state.snapshots.slice(0, 30);
+    }
+    persistSnapshots();
+    addLog("建立快照"); setMessage(`已建立快照：${snap.label}`);
+  }
+
+  function restoreSnapshot(snapshotId) {
+    const snap = state.snapshots.find(s => s.id === snapshotId);
+    if (!snap) return;
+    if (!confirm(`要復原到「${snap.label}」嗎？目前資料會被覆蓋。`)) return;
+    maybeCreateAutoSnapshot(`復原前 / ${snap.label}`);
+    const data = snap.project || {};
+    const anchors = Array.isArray(data.anchors) ? data.anchors : [];
+    const mapElements = Array.isArray(data.mapElements) ? data.mapElements : [];
+    const navHistory = Array.isArray(data.navHistory) ? data.navHistory : [];
+    const settings = data.settings || {};
+
+    state.savedAnchors = anchors;
+    state.mapElements = mapElements;
+    state.navHistory = navHistory;
+
+    if (settings.currentFloor) state.currentFloor = settings.currentFloor;
+    if (settings.routePreference) state.routePreference = settings.routePreference;
+    if (typeof settings.showAnchorOverlay === "boolean") state.showAnchorOverlay = settings.showAnchorOverlay;
+    if (typeof settings.showMapOverlay === "boolean") state.showMapOverlay = settings.showMapOverlay;
+    if (typeof settings.voiceGuideEnabled === "boolean") state.voiceGuideEnabled = settings.voiceGuideEnabled;
+    if (typeof settings.snapEnabled === "boolean") state.snapEnabled = settings.snapEnabled;
+    if (typeof settings.autoIntersectEnabled === "boolean") state.autoIntersectEnabled = settings.autoIntersectEnabled;
+    if (Number.isFinite(Number(settings.arrivalThreshold))) state.arrivalThreshold = Number(settings.arrivalThreshold);
+    if (Number.isFinite(Number(settings.averageWalkingSpeed))) state.averageWalkingSpeed = Number(settings.averageWalkingSpeed);
+    if (Number.isFinite(Number(settings.stepLength))) state.stepLength = Number(settings.stepLength);
+
+    localStorage.setItem("indoor_saved_anchors", JSON.stringify(state.savedAnchors));
+    localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
+    localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
+
+    renderSavedAnchors();
+    renderMapElements();
+    renderNavHistory();
+    render();
+    addLog("復原快照"); setMessage(`已復原快照：${snap.label}`);
+  }
+
+  function deleteSnapshot(snapshotId) {
+    state.snapshots = state.snapshots.filter(s => s.id !== snapshotId);
+    persistSnapshots();
+  }
+
+  function renderSnapshots() {
+    const el = $("snapshotList");
+    if (!el) return;
+    if (!state.snapshots.length) {
+      el.innerHTML = '<div class="item">尚無快照。</div>';
+      return;
+    }
+    el.innerHTML = state.snapshots.map((s) => `
+      <div class="item">
+        <div class="item-top">
+          <strong>${s.label || "未命名快照"}</strong>
+          <span class="badge">${new Date(s.createdAt).toLocaleString()}</span>
+        </div>
+        <div>anchors: ${Array.isArray(s.project?.anchors) ? s.project.anchors.length : 0}</div>
+        <div>mapElements: ${Array.isArray(s.project?.mapElements) ? s.project.mapElements.length : 0}</div>
+        <div>navHistory: ${Array.isArray(s.project?.navHistory) ? s.project.navHistory.length : 0}</div>
+        <div class="btns" style="margin-top:10px; margin-bottom:0;">
+          <button data-snapshot-restore="${s.id}">復原</button>
+          <button data-snapshot-export="${s.id}">匯出單筆</button>
+          <button data-snapshot-delete="${s.id}" class="danger">刪除</button>
+        </div>
+      </div>
+    `).join("");
+
+    el.querySelectorAll("[data-snapshot-restore]").forEach(btn => {
+      btn.addEventListener("click", () => restoreSnapshot(btn.getAttribute("data-snapshot-restore")));
+    });
+    el.querySelectorAll("[data-snapshot-delete]").forEach(btn => {
+      btn.addEventListener("click", () => deleteSnapshot(btn.getAttribute("data-snapshot-delete")));
+    });
+    el.querySelectorAll("[data-snapshot-export]").forEach(btn => {
+      btn.addEventListener("click", () => exportSingleSnapshot(btn.getAttribute("data-snapshot-export")));
+    });
+  }
+
+  function openSnapshotModal() {
+    $("snapshotModal").style.display = "flex";
+    renderSnapshots();
+  }
+
+  function closeSnapshotModal() {
+    $("snapshotModal").style.display = "none";
+  }
+
+  function exportSingleSnapshot(snapshotId) {
+    const snap = state.snapshots.find(s => s.id === snapshotId);
+    if (!snap) return;
+    const blob = new Blob([JSON.stringify(snap, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `indoor-snapshot-${snapshotId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportSnapshots() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      version: 1,
+      snapshots: state.snapshots
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `indoor-snapshots-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function importSnapshots(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const incoming = Array.isArray(data) ? data : data.snapshots;
+      if (!Array.isArray(incoming)) throw new Error("JSON 裡找不到 snapshots 陣列");
+      state.snapshots = incoming.concat(state.snapshots).slice(0, 50);
+      persistSnapshots();
+      setMessage(`已匯入 ${incoming.length} 筆快照。`);
+    } catch (e) {
+      alert("匯入快照失敗：" + e.message);
+    }
+  }
+
+
+
+  function maybeCreateAutoSnapshot(reason = "") {
+    if (!state.autoSnapshotEnabled) return;
+    const label = reason ? `自動快照：${reason} / ${new Date().toLocaleString()}` : `自動快照 ${new Date().toLocaleString()}`;
+    const snap = snapshotStoragePayload(label);
+    state.snapshots.unshift(snap);
+    if (state.snapshots.length > 50) {
+      state.snapshots = state.snapshots.slice(0, 50);
+    }
+    persistSnapshots();
+  }
+
+
+
+  function addLog(action, detail = "") {
+    markCollabDirty();
+    const entry = {
+      id: Date.now(),
+      time: new Date().toLocaleString(),
+      action,
+      detail
+    };
+    state.logs.unshift(entry);
+    if (state.logs.length > 200) state.logs = state.logs.slice(0, 200);
+    localStorage.setItem("indoor_logs", JSON.stringify(state.logs));
+    renderLogs();
+  }
+
+  function loadLogs() {
+    try {
+      const raw = localStorage.getItem("indoor_logs");
+      state.logs = raw ? JSON.parse(raw) : [];
+    } catch {
+      state.logs = [];
+    }
+    renderLogs();
+  }
+
+  function renderLogs() {
+    const el = $("logList");
+    if (!el) return;
+    if (!state.logs.length) {
+      el.innerHTML = '<div class="item">尚無紀錄</div>';
+      return;
+    }
+    el.innerHTML = state.logs.map(l => `
+      <div class="item">
+        <div><strong>${l.action}</strong></div>
+        <div>${l.detail || ""}</div>
+        <div class="subtle">${l.time}</div>
+      </div>
+    `).join("");
+  }
+
+  function openLogModal() {
+    $("logModal").style.display = "flex";
+    renderLogs();
+  }
+
+  function closeLogModal() {
+    $("logModal").style.display = "none";
+  }
+
+
+
+  function buildRealtimeSyncPayload() {
+    return {
+      updatedAt: Date.now(),
+      anchors: state.savedAnchors,
+      mapElements: state.mapElements,
+      navHistory: state.navHistory,
+      snapshots: state.snapshots,
+      logs: state.logs,
+      settings: {
+        currentFloor: state.currentFloor,
+        routePreference: state.routePreference,
+        showAnchorOverlay: state.showAnchorOverlay,
+        showMapOverlay: state.showMapOverlay,
+        voiceGuideEnabled: state.voiceGuideEnabled,
+        snapEnabled: state.snapEnabled,
+        autoIntersectEnabled: state.autoIntersectEnabled,
+        arrivalThreshold: state.arrivalThreshold,
+        averageWalkingSpeed: state.averageWalkingSpeed,
+        stepLength: state.stepLength,
+        autoSnapshotEnabled: state.autoSnapshotEnabled,
+        appRole: state.appRole,
+        adminUnlocked: state.adminUnlocked
+      }
+    };
+  }
+
+  function applyRealtimeSyncPayload(data) {
+    if (!data || typeof data !== "object") return;
+    if ((data.updatedAt || 0) <= state.lastRemoteTs) return;
+
+    state.applyingRemote = true;
+    state.lastRemoteTs = data.updatedAt || Date.now();
+
+    state.savedAnchors = Array.isArray(data.anchors) ? data.anchors : [];
+    state.mapElements = Array.isArray(data.mapElements) ? data.mapElements : [];
+    state.navHistory = Array.isArray(data.navHistory) ? data.navHistory : [];
+    state.snapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
+    state.logs = Array.isArray(data.logs) ? data.logs : [];
+
+    const settings = data.settings || {};
+    if (settings.currentFloor) state.currentFloor = settings.currentFloor;
+    if (settings.routePreference) state.routePreference = settings.routePreference;
+    if (typeof settings.showAnchorOverlay === "boolean") state.showAnchorOverlay = settings.showAnchorOverlay;
+    if (typeof settings.showMapOverlay === "boolean") state.showMapOverlay = settings.showMapOverlay;
+    if (typeof settings.voiceGuideEnabled === "boolean") state.voiceGuideEnabled = settings.voiceGuideEnabled;
+    if (typeof settings.snapEnabled === "boolean") state.snapEnabled = settings.snapEnabled;
+    if (typeof settings.autoIntersectEnabled === "boolean") state.autoIntersectEnabled = settings.autoIntersectEnabled;
+    if (typeof settings.autoSnapshotEnabled === "boolean") state.autoSnapshotEnabled = settings.autoSnapshotEnabled;
+    if (Number.isFinite(Number(settings.arrivalThreshold))) state.arrivalThreshold = Number(settings.arrivalThreshold);
+    if (Number.isFinite(Number(settings.averageWalkingSpeed))) state.averageWalkingSpeed = Number(settings.averageWalkingSpeed);
+    if (Number.isFinite(Number(settings.stepLength))) state.stepLength = Number(settings.stepLength);
+
+    localStorage.setItem("indoor_saved_anchors", JSON.stringify(state.savedAnchors));
+    localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
+    localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
+    localStorage.setItem("indoor_project_snapshots", JSON.stringify(state.snapshots));
+    localStorage.setItem("indoor_logs", JSON.stringify(state.logs));
+
+    renderSavedAnchors();
+    renderMapElements();
+    renderNavHistory();
+    renderSnapshots();
+    renderLogs();
+    render();
+    state.applyingRemote = false;
+    setMessage("已套用遠端同步資料。");
+  }
+
+  function markCollabDirty() {
+    if (state.applyingRemote) return;
+    state.collabDirty = true;
+  }
+
+  function saveCollabSettings() {
+    state.collabRoomId = $("collabRoomId").value.trim();
+    state.collabConfigText = $("collabConfigText").value.trim();
+    localStorage.setItem("indoor_collab_room", state.collabRoomId);
+    localStorage.setItem("indoor_collab_config", state.collabConfigText);
+    setMessage("已儲存協作設定。");
+  }
+
+  function loadCollabSettings() {
+    state.collabRoomId = localStorage.getItem("indoor_collab_room") || "";
+    state.collabConfigText = localStorage.getItem("indoor_collab_config") || "";
+  }
+
+  function openCollabModal() {
+    $("collabModal").style.display = "flex";
+    $("collabRoomId").value = state.collabRoomId || "";
+    $("collabConfigText").value = state.collabConfigText || "";
+    updateCollabStatusUI();
+  }
+
+  function closeCollabModal() {
+    $("collabModal").style.display = "none";
+  }
+
+  function updateCollabStatusUI() {
+    if ($("collabStatusBadge")) $("collabStatusBadge").textContent = state.collabStatus;
+  }
+
+  async function connectCollab() {
+    try {
+      saveCollabSettings();
+      if (!state.collabRoomId || !state.collabConfigText) {
+        alert("請先填 Firebase config 與 Room ID。");
+        return;
+      }
+
+      state.collabStatus = "connecting";
+      updateCollabStatusUI();
+      render();
+
+      const config = JSON.parse(state.collabConfigText);
+
+      const [{ initializeApp }, firestoreMod] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+      ]);
+
+      const {
+        getFirestore,
+        doc,
+        onSnapshot,
+        setDoc,
+        serverTimestamp
+      } = firestoreMod;
+
+      if (state.collabUnsub) {
+        state.collabUnsub();
+        state.collabUnsub = null;
+      }
+
+      const app = initializeApp(config, "indoor-collab-" + Date.now());
+      const db = getFirestore(app);
+      state.collabDb = { db, doc, onSnapshot, setDoc, serverTimestamp, roomDoc: doc(db, "indoorRooms", state.collabRoomId) };
+
+      state.collabUnsub = onSnapshot(state.collabDb.roomDoc, (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        applyRealtimeSyncPayload(data.payload || data);
+      });
+
+      state.collabStatus = "connected";
+      updateCollabStatusUI();
+      setMessage(`已連線到協作 room：${state.collabRoomId}`);
+      markCollabDirty();
+      addLog("連線協作", state.collabRoomId);
+      render();
+    } catch (e) {
+      state.collabStatus = "error";
+      updateCollabStatusUI();
+      alert("協作連線失敗：" + e.message);
+    }
+  }
+
+  function disconnectCollab() {
+    if (state.collabUnsub) {
+      state.collabUnsub();
+      state.collabUnsub = null;
+    }
+    state.collabDb = null;
+    state.collabStatus = "idle";
+    updateCollabStatusUI();
+    setMessage("已中斷協作同步。");
+    addLog("中斷協作");
+    render();
+  }
+
+  async function flushCollabSync() {
+    if (!state.collabDb || !state.collabDirty) return;
+    try {
+      state.collabDirty = false;
+      state.lastPushedTs = Date.now();
+      const payload = buildRealtimeSyncPayload();
+      await state.collabDb.setDoc(state.collabDb.roomDoc, {
+        payload,
+        updatedAt: state.collabDb.serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      state.collabDirty = true;
+      console.error(e);
+    }
+  }
+
+
+
+  function loadAppRole() {
+    state.appRole = localStorage.getItem("indoor_app_role") || "admin";
+  }
+
+  function setAppRole(role) {
+    if (role === "admin" && !state.adminUnlocked) {
+      state.appRole = "user";
+      localStorage.setItem("indoor_app_role", "user");
+      render();
+      setMessage("請先完成管理員登入後再切換到管理員模式。");
+      openAuthModal();
+      return;
+    }
+    state.appRole = role === "user" ? "user" : "admin";
+    localStorage.setItem("indoor_app_role", state.appRole);
+    render();
+    setMessage(state.appRole === "user" ? "已切換為使用者模式。" : "已切換為管理員模式。");
+  }
+
+  function applyRoleVisibility() {
+    const isUser = state.appRole === "user";
+    const show = (sel, visible) => {
+      document.querySelectorAll(sel).forEach((el) => {
+        el.style.display = visible ? "" : "none";
+      });
+    };
+
+    // topbar/admin functions
+    ["btnExportProject","btnImportProject","btnCreateSnapshot","btnOpenSnapshots","btnOpenLog","btnOpenCollab","toggleAutoSnapshot"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (id === "toggleAutoSnapshot") {
+          const wrap = el.closest("label");
+          if (wrap) wrap.style.display = isUser ? "none" : "";
+        } else {
+          el.style.display = isUser ? "none" : "";
+        }
+      }
+    });
+
+    // tabs: user sees nav only
+    document.querySelectorAll(".tabbtn").forEach((btn) => {
+      const page = btn.getAttribute("data-page");
+      if (["qrPage", "mapEditorPage"].includes(page)) {
+        btn.style.display = isUser ? "none" : "";
+      }
+    });
+
+    // nav admin sections/buttons
+    ["btnExport","btnStepCal","btnQrCal","btnReset","btnAnchor"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isUser ? "none" : "";
+    });
+
+    const roleBanner = document.getElementById("roleModeBanner");
+    if (roleBanner) roleBanner.style.display = isUser ? "" : "none";
+
+    // if user currently on hidden page, force nav
+    if (isUser) {
+      const activeHidden = document.querySelector('.page.active#qrPage, .page.active#mapEditorPage');
+      if (activeHidden) switchPage("navPage");
+    }
+  }
+
+
+
+  function loadAuthState() {
+    state.adminUnlocked = localStorage.getItem("indoor_admin_unlocked") === "true";
+    const savedRole = localStorage.getItem("indoor_app_role") || "admin";
+    if (!state.adminUnlocked && savedRole === "admin") {
+      state.appRole = "user";
+    }
+  }
+
+  function openAuthModal() {
+    $("authModal").style.display = "flex";
+    updateAuthStatusUI();
+  }
+
+  function closeAuthModal() {
+    $("authModal").style.display = "none";
+  }
+
+  function updateAuthStatusUI() {
+    const banner = $("authStatusBanner");
+    if (!banner) return;
+    const firebasePart = state.firebaseAuthStatus === "signed-in"
+      ? `Firebase：已登入 ${state.firebaseUserEmail || ""}`
+      : "Firebase：未登入";
+    banner.textContent = state.adminUnlocked
+      ? `管理員已解鎖。${firebasePart}`
+      : `尚未登入管理員。${firebasePart}`;
+  }
+
+  function getStoredAdminPassword() {
+    return localStorage.getItem("indoor_admin_password") || "";
+  }
+
+  function setAdminPassword() {
+    const current = getStoredAdminPassword();
+    const pwd = prompt(current ? "輸入新的管理員密碼" : "設定管理員密碼", "");
+    if (!pwd) return;
+    localStorage.setItem("indoor_admin_password", pwd);
+    addLog("設定管理員密碼");
+    setMessage("已更新管理員密碼。");
+  }
+
+  function unlockAdminWithPassword() {
+    const stored = getStoredAdminPassword();
+    if (!stored) {
+      alert("請先設定管理員密碼。");
+      return;
+    }
+    const entered = $("adminPasswordInput").value;
+    if (entered !== stored) {
+      alert("密碼錯誤。");
+      addLog("管理員登入失敗", "本地密碼錯誤");
+      return;
+    }
+    state.adminUnlocked = true;
+    state.appRole = "admin";
+    localStorage.setItem("indoor_admin_unlocked", "true");
+    localStorage.setItem("indoor_app_role", "admin");
+    addLog("管理員登入成功", "本地密碼");
+    setMessage("已解鎖管理員模式。");
+    render();
+    updateAuthStatusUI();
+  }
+
+  function lockAdminMode() {
+    state.adminUnlocked = false;
+    state.appRole = "user";
+    localStorage.setItem("indoor_admin_unlocked", "false");
+    localStorage.setItem("indoor_app_role", "user");
+    addLog("鎖定管理員模式");
+    setMessage("已鎖定回使用者模式。");
+    render();
+    updateAuthStatusUI();
+  }
+
+  async function firebaseLogin() {
+    try {
+      const email = $("authEmailInput").value.trim();
+      const password = $("authPasswordInput").value;
+      if (!email || !password) {
+        alert("請輸入 Email 與 Password。");
+        return;
+      }
+      if (!state.collabConfigText) {
+        alert("請先在協作同步填好 Firebase Web config，或先打開協作同步並儲存設定。");
+        return;
+      }
+      const config = JSON.parse(state.collabConfigText);
+
+      const [{ initializeApp }, authMod] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
+      ]);
+
+      const { getAuth, signInWithEmailAndPassword } = authMod;
+      const app = initializeApp(config, "indoor-auth-" + Date.now());
+      const auth = getAuth(app);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+
+      state.firebaseAuthStatus = "signed-in";
+      state.firebaseUserEmail = cred.user?.email || email;
+      state.adminUnlocked = true;
+      state.appRole = "admin";
+      localStorage.setItem("indoor_admin_unlocked", "true");
+      localStorage.setItem("indoor_app_role", "admin");
+      addLog("Firebase 管理員登入成功", state.firebaseUserEmail);
+      setMessage(`已用 Firebase 登入管理員：${state.firebaseUserEmail}`);
+      render();
+      updateAuthStatusUI();
+    } catch (e) {
+      state.firebaseAuthStatus = "error";
+      addLog("Firebase 管理員登入失敗", e.message);
+      updateAuthStatusUI();
+      alert("Firebase 登入失敗：" + e.message);
+    }
+  }
+
+  function firebaseLogout() {
+    state.firebaseAuthStatus = "idle";
+    state.firebaseUserEmail = "";
+    state.adminUnlocked = false;
+    state.appRole = "user";
+    localStorage.setItem("indoor_admin_unlocked", "false");
+    localStorage.setItem("indoor_app_role", "user");
+    addLog("Firebase 管理員登出");
+    setMessage("已登出管理員並切回使用者模式。");
+    render();
+    updateAuthStatusUI();
+  }
+
+
   function render() {
     $("messageBox").textContent = state.message;
     $("guidanceBanner").textContent = state.currentGuidanceText;
+    if ($("appRoleSelect")) $("appRoleSelect").value = state.appRole;
+    updateAuthStatusUI();
     $("toggleVoiceGuide").checked = state.voiceGuideEnabled;
     $("btnNavSessionStart").disabled = !state.navTargetId || state.navSessionState === "active";
     $("btnNavSessionPause").disabled = state.navSessionState !== "active";
     $("btnNavSessionResume").disabled = state.navSessionState !== "paused";
     $("btnNavSessionEnd").disabled = state.navSessionState === "idle";
+    if ($("toggleAutoSnapshot")) $("toggleAutoSnapshot").checked = state.autoSnapshotEnabled;
+    updateCollabStatusUI();
     const editorModeBadge = $("editorModeBadge");
     if (editorModeBadge) editorModeBadge.textContent = state.editorMode;
     const editorDraftInfo = $("editorDraftInfo");
@@ -2678,6 +3652,7 @@
     if ($("toggleSnapMode")) $("toggleSnapMode").checked = state.snapEnabled;
     if ($("editorElementSemantic")) $("editorElementSemantic").value = $("editorElementSemantic").value || "walkable";
     if ($("navCurrentFloorSelect")) $("navCurrentFloorSelect").value = state.currentFloor || "1F";
+    if ($("routePreferenceSelect")) $("routePreferenceSelect").value = state.routePreference || "normal";
     if ($("toggleAutoIntersect")) $("toggleAutoIntersect").checked = state.autoIntersectEnabled;
     const editorMessageBox = $("editorMessageBox");
     if (editorMessageBox) editorMessageBox.textContent = state.editorMessage;
@@ -2697,6 +3672,7 @@
     $("lastStepValue").textContent = state.lastStepAt ? new Date(state.lastStepAt).toLocaleTimeString() : "-";
     $("geoValue").textContent = state.geoReading ? `${fmt(state.geoReading.lat, 6)}, ${fmt(state.geoReading.lng, 6)}` : "-";
     $("stepLengthValue").textContent = `${fmt(state.stepLength, 2)} m`;
+    if ($("stepLength")) $("stepLength").value = String(state.stepLength);
     $("toggleAnchorOverlay").checked = state.showAnchorOverlay;
     $("toggleMapOverlay").checked = state.showMapOverlay;
     $("arrivalThresholdInput").value = String(state.arrivalThreshold);
@@ -2719,6 +3695,7 @@
     drawTrack();
     drawEditorCanvas();
     renderMapElements();
+    applyRoleVisibility();
   }
 
   async function requestPermissions() {
@@ -3420,6 +4397,45 @@
   $("btnNavSessionPause").addEventListener("click", pauseNavSession);
   $("btnNavSessionResume").addEventListener("click", resumeNavSession);
   $("btnNavSessionEnd").addEventListener("click", () => finishNavSession("ended"));
+  $("btnExportProject").addEventListener("click", exportProjectData);
+
+  $("btnCreateSnapshot").addEventListener("click", () => createSnapshot("")); 
+  $("btnOpenSnapshots").addEventListener("click", openSnapshotModal);
+  $("appRoleSelect").addEventListener("change", (e) => setAppRole(e.target.value));
+  $("btnOpenAuth").addEventListener("click", openAuthModal);
+  $("btnCloseAuth").addEventListener("click", closeAuthModal);
+  $("btnSetAdminPassword").addEventListener("click", setAdminPassword);
+  $("btnUnlockAdmin").addEventListener("click", unlockAdminWithPassword);
+  $("btnLockAdmin").addEventListener("click", lockAdminMode);
+  $("btnFirebaseLogin").addEventListener("click", firebaseLogin);
+  $("btnFirebaseLogout").addEventListener("click", firebaseLogout);
+  $("btnOpenLog").addEventListener("click", openLogModal);
+  $("btnCloseLog").addEventListener("click", closeLogModal);
+  $("btnOpenCollab").addEventListener("click", openCollabModal);
+  $("btnCloseCollab").addEventListener("click", closeCollabModal);
+  $("btnSaveCollabSettings").addEventListener("click", saveCollabSettings);
+  $("btnConnectCollab").addEventListener("click", connectCollab);
+  $("btnDisconnectCollab").addEventListener("click", disconnectCollab);
+  $("btnCloseSnapshots").addEventListener("click", closeSnapshotModal);
+  $("toggleAutoSnapshot").addEventListener("change", (e) => { state.autoSnapshotEnabled = e.target.checked; render(); });
+  $("btnExportSnapshots").addEventListener("click", exportSnapshots);
+  $("btnImportSnapshots").addEventListener("click", () => $("importSnapshotsFile").click());
+  $("importSnapshotsFile").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    importSnapshots(file);
+    e.target.value = "";
+  });
+  $("btnClearSnapshots").addEventListener("click", () => {
+    if (!confirm("確定要清空所有快照嗎？")) return;
+    state.snapshots = [];
+    persistSnapshots();
+  });
+  $("btnImportProject").addEventListener("click", () => $("importProjectFile").click());
+  $("importProjectFile").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    importProjectData(file);
+    e.target.value = "";
+  });
   $("btnExportNavHistory").addEventListener("click", exportNavHistory);
 
   $("btnEditorIdle").addEventListener("click", () => setEditorMode("idle"));
@@ -3430,6 +4446,7 @@
   $("btnEditorNormalize").addEventListener("click", () => { normalizeLineNetwork(); render(); });
   $("btnEditorClear").addEventListener("click", () => {
     if (!confirm("確定要清空所有地圖元素嗎？")) return;
+    maybeCreateAutoSnapshot("清空地圖元素前");
     state.mapElements = [];
     state.editorDraftPoints = [];
     persistMapElements();
@@ -3440,6 +4457,7 @@
   $("toggleSnapMode").addEventListener("change", (e) => { state.snapEnabled = e.target.checked; render(); });
   $("toggleAutoIntersect").addEventListener("change", (e) => { state.autoIntersectEnabled = e.target.checked; render(); });
   $("navCurrentFloorSelect").addEventListener("change", (e) => { state.currentFloor = e.target.value; render(); });
+  $("routePreferenceSelect").addEventListener("change", (e) => { state.routePreference = e.target.value; render(); });
   $("editorCanvas").addEventListener("click", handleEditorCanvasClick);
   $("btnUpdateSelectedMapElement").addEventListener("click", updateSelectedMapElementName);
   $("btnDeleteSelectedMapElement").addEventListener("click", deleteSelectedMapElement);
@@ -3454,6 +4472,7 @@
 
   $("btnClearNavHistory").addEventListener("click", () => {
     if (!confirm("確定要清空所有導航歷史嗎？")) return;
+    maybeCreateAutoSnapshot("清空導航歷史前");
     state.navHistory = [];
     persistNavHistory();
   });
@@ -3470,6 +4489,7 @@
   });
   $("btnClearAnchors").addEventListener("click", () => {
     if (!confirm("確定要清空所有已儲存校正點嗎？")) return;
+    maybeCreateAutoSnapshot("清空 Anchor 前");
     state.savedAnchors = [];
     persistSavedAnchors();
   });
@@ -3489,9 +4509,15 @@
   window.addEventListener("devicemotion", handleMotion, true);
 
   generateQr();
+  loadAppRole();
+  loadAuthState();
   loadSavedAnchors();
   loadNavHistory();
   loadMapElements();
+  loadSnapshots();
+  loadLogs();
+  loadCollabSettings();
+  setInterval(() => { flushCollabSync(); }, 2000);
   render();
 })();
 </script>
