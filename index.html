@@ -614,7 +614,16 @@
                 <span id="editorDraftInfo">未命名</span>
               </div>
               <input id="editorNameInput" type="text" placeholder="例如：走廊 A、入口大廳、會議室區" />
-              <div class="subtle">新增點位時會以這個名稱建立標記。新增線段/區域時會以這個名稱記錄元素。</div>
+              <div style="margin-top:10px;" class="row">
+                <label for="editorElementSemantic">元素語義</label>
+                <select id="editorElementSemantic" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="walkable">可通行</option>
+                  <option value="wall">牆 / 障礙</option>
+                  <option value="restricted">限制區域</option>
+                  <option value="landmark">地標</option>
+                </select>
+              </div>
+              <div class="subtle">新增點位時會以這個名稱建立標記。新增線段/區域時會以這個名稱記錄元素，並附帶可通行/牆/限制區域等語義。</div>
               <div style="margin-top:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
                 <label style="display:flex; align-items:center; gap:8px; margin:0; color:#334155;">
                   <input id="toggleSnapMode" type="checkbox" checked />
@@ -625,7 +634,7 @@
                   啟用交點節點化
                 </label>
               </div>
-              <div class="subtle">線段端點會自動吸附到附近現有端點。若兩條線相交，會自動建立交點節點供路網使用。</div>
+              <div class="subtle">線段端點會自動吸附到附近現有端點。若兩條線相交，會自動建立交點節點供路網使用。牆與限制區域會影響路徑規劃。</div>
             </div>
 
             <div class="map-wrap">
@@ -655,6 +664,15 @@
                   <label for="selectedMapElementName">名稱</label>
                   <input id="selectedMapElementName" type="text" placeholder="請先從清單選一個元素" />
                 </div>
+                <div class="row">
+                  <label for="selectedMapElementSemantic">元素語義</label>
+                  <select id="selectedMapElementSemantic" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                    <option value="walkable">可通行</option>
+                    <option value="wall">牆 / 障礙</option>
+                    <option value="restricted">限制區域</option>
+                    <option value="landmark">地標</option>
+                  </select>
+                </div>
                 <div class="btns" style="margin-bottom:0;">
                   <button id="btnUpdateSelectedMapElement">更新名稱</button>
                   <button id="btnConvertSelectedToAnchor" class="secondary">轉成 Anchor</button>
@@ -677,6 +695,7 @@
               <p>5. 點位元素可一鍵轉成 Anchor，直接進到 QR 與導航流程。</p>
               <p>6. 線段元素可作為路網，讓導航頁沿地圖線段自動找路。</p>
               <p>7. 啟用吸附與交點節點化後，路網會更容易連通，找路更穩。</p>
+              <p>8. 把線段或區域標成牆 / 限制區域後，路徑規劃會盡量避開。</p>
             </div>
           </section>
         </div>
@@ -875,10 +894,11 @@
 
     state.mapElements.slice().reverse().forEach((el) => {
       const isSelected = el.id === state.selectedMapElementId;
+      const semantic = el.semantic || "walkable";
       if (el.type === "point") {
         const x = CENTER + Number(el.x || 0) * SCALE;
         const y = CENTER + Number(el.y || 0) * SCALE;
-        ctx.fillStyle = isSelected ? "#ef4444" : "#059669";
+        ctx.fillStyle = isSelected ? "#ef4444" : (semantic === "landmark" ? "#0ea5e9" : semantic === "restricted" ? "#f59e0b" : "#059669");
         ctx.beginPath();
         ctx.arc(x, y, 5, 0, Math.PI * 2);
         ctx.fill();
@@ -888,8 +908,8 @@
           ctx.fillText(el.name || "point", x + 8, y - 8);
         }
       } else if (el.type === "line" && Array.isArray(el.points) && el.points.length >= 2) {
-        ctx.strokeStyle = isSelected ? "#ef4444" : "#7c3aed";
-        ctx.lineWidth = isSelected ? 4 : 3;
+        ctx.strokeStyle = isSelected ? "#ef4444" : (semantic === "wall" ? "#111827" : semantic === "restricted" ? "#f59e0b" : "#7c3aed");
+        ctx.lineWidth = semantic === "wall" ? 5 : (isSelected ? 4 : 3);
         ctx.beginPath();
         el.points.forEach((p, i) => {
           const x = CENTER + Number(p.x || 0) * SCALE;
@@ -906,8 +926,8 @@
           ctx.fillText(el.name || "line", CENTER + Number(mid.x || 0) * SCALE + 8, CENTER + Number(mid.y || 0) * SCALE - 8);
         }
       } else if (el.type === "area" && Array.isArray(el.points) && el.points.length >= 3) {
-        ctx.fillStyle = isSelected ? "rgba(239,68,68,0.14)" : "rgba(234,179,8,0.14)";
-        ctx.strokeStyle = isSelected ? "#ef4444" : "#ca8a04";
+        ctx.fillStyle = isSelected ? "rgba(239,68,68,0.14)" : (semantic === "restricted" ? "rgba(239,68,68,0.12)" : "rgba(234,179,8,0.14)");
+        ctx.strokeStyle = isSelected ? "#ef4444" : (semantic === "restricted" ? "#dc2626" : "#ca8a04");
         ctx.lineWidth = isSelected ? 3 : 2;
         ctx.beginPath();
         el.points.forEach((p, i) => {
@@ -1718,6 +1738,7 @@
         name,
         x: Number(world.x.toFixed(2)),
         y: Number(world.y.toFixed(2)),
+        semantic: currentEditorSemantic(),
         createdAt: now
       });
       setEditorMessage(`已新增點位：${name} (${world.x.toFixed(1)}, ${world.y.toFixed(1)})`);
@@ -1742,6 +1763,7 @@
           { x: Number(a.x.toFixed(2)), y: Number(a.y.toFixed(2)) },
           { x: Number(b.x.toFixed(2)), y: Number(b.y.toFixed(2)) }
         ],
+        semantic: currentEditorSemantic(),
         createdAt: now
       });
       state.editorDraftPoints = [];
@@ -1766,6 +1788,7 @@
           x: Number(p.x.toFixed(2)),
           y: Number(p.y.toFixed(2))
         })),
+        semantic: currentEditorSemantic(),
         createdAt: now
       });
       state.editorDraftPoints = [];
@@ -1819,8 +1842,8 @@
         ctx.fillStyle = "#065f46";
         ctx.fillText(el.name || "point", x + 8, y - 8);
       } else if (el.type === "line" && Array.isArray(el.points) && el.points.length >= 2) {
-        ctx.strokeStyle = isSelected ? "#ef4444" : "#7c3aed";
-        ctx.lineWidth = isSelected ? 4 : 3;
+        ctx.strokeStyle = isSelected ? "#ef4444" : (semantic === "wall" ? "#111827" : semantic === "restricted" ? "#f59e0b" : "#7c3aed");
+        ctx.lineWidth = semantic === "wall" ? 5 : (isSelected ? 4 : 3);
         ctx.beginPath();
         el.points.forEach((p, i) => {
           const x = CENTER + Number(p.x || 0) * SCALE;
@@ -1880,7 +1903,7 @@
       <div class="item">
         <div class="item-top">
           <strong>${m.name || "未命名"}</strong>
-          <span style="display:flex; gap:6px; align-items:center;"><span class="badge">${m.type}</span>${m.source === "anchor" ? '<span class="badge">anchor</span>' : ""}</span>
+          <span style="display:flex; gap:6px; align-items:center;"><span class="badge">${m.type}</span><span class="badge">${m.semantic || "walkable"}</span>${m.source === "anchor" ? '<span class="badge">anchor</span>' : ""}</span>
         </div>
         ${
           m.type === "point"
@@ -1975,6 +1998,7 @@
     const el = selectedMapElement();
     if ($("selectedMapElementType")) $("selectedMapElementType").textContent = el ? el.type : "none";
     if ($("selectedMapElementName")) $("selectedMapElementName").value = el ? (el.name || "") : "";
+    if ($("selectedMapElementSemantic")) $("selectedMapElementSemantic").value = el ? (el.semantic || "walkable") : "walkable";
     if (el) {
       setEditorMessage(`已選取元素：${el.name || "未命名"} (${el.type})`);
     }
@@ -1988,7 +2012,9 @@
       return;
     }
     const name = $("selectedMapElementName").value.trim() || "未命名";
+    const semantic = $("selectedMapElementSemantic").value || "walkable";
     el.name = name;
+    el.semantic = semantic;
     persistMapElements();
     setEditorMessage(`已更新元素名稱：${name}`);
     render();
@@ -2168,7 +2194,7 @@
 
 
   function networkLineElements() {
-    return state.mapElements.filter((m) => m.type === "line" && Array.isArray(m.points) && m.points.length >= 2);
+    return state.mapElements.filter((m) => m.type === "line" && Array.isArray(m.points) && m.points.length >= 2 && (m.semantic || "walkable") !== "wall" && (m.semantic || "walkable") !== "restricted");
   }
 
   function pointKey(p) {
@@ -2219,8 +2245,10 @@
         const a = ensureNode(line.points[i - 1]);
         const b = ensureNode(line.points[i]);
         const w = distanceBetween(a, b);
-        edges.get(a.key).push({ to: b.key, weight: w });
-        edges.get(b.key).push({ to: a.key, weight: w });
+        if (!segmentBlockedByWalls(a, b) && !pointInsideRestrictedArea(a) && !pointInsideRestrictedArea(b)) {
+          edges.get(a.key).push({ to: b.key, weight: w });
+          edges.get(b.key).push({ to: a.key, weight: w });
+        }
       }
     });
 
@@ -2486,6 +2514,48 @@
   }
 
 
+
+  function currentEditorSemantic() {
+    return $("editorElementSemantic")?.value || "walkable";
+  }
+
+  function ccw(A, B, C) {
+    return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
+  }
+
+  function segmentsCross(a, b, c, d) {
+    // Exclude shared endpoints / near-touch as blocking crossings
+    const shared =
+      distanceBetween(a, c) < 0.05 || distanceBetween(a, d) < 0.05 ||
+      distanceBetween(b, c) < 0.05 || distanceBetween(b, d) < 0.05;
+    if (shared) return false;
+    return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d);
+  }
+
+  function segmentBlockedByWalls(a, b) {
+    const walls = state.mapElements.filter(m => m.semantic === "wall" && m.type === "line" && Array.isArray(m.points) && m.points.length >= 2);
+    return walls.some((w) => {
+      const p1 = { x: Number(w.points[0].x || 0), y: Number(w.points[0].y || 0) };
+      const p2 = { x: Number(w.points[1].x || 0), y: Number(w.points[1].y || 0) };
+      return segmentsCross(a, b, p1, p2);
+    });
+  }
+
+  function pointInsideRestrictedArea(p) {
+    const areas = state.mapElements.filter(m => m.semantic === "restricted" && m.type === "area" && Array.isArray(m.points) && m.points.length >= 3);
+    return areas.some((area) => {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      area.points.forEach(pt => {
+        minX = Math.min(minX, Number(pt.x || 0));
+        minY = Math.min(minY, Number(pt.y || 0));
+        maxX = Math.max(maxX, Number(pt.x || 0));
+        maxY = Math.max(maxY, Number(pt.y || 0));
+      });
+      return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
+    });
+  }
+
+
   function render() {
     $("messageBox").textContent = state.message;
     $("guidanceBanner").textContent = state.currentGuidanceText;
@@ -2499,6 +2569,7 @@
     const editorDraftInfo = $("editorDraftInfo");
     if (editorDraftInfo) editorDraftInfo.textContent = $("editorNameInput") ? ($("editorNameInput").value.trim() || "未命名") : "未命名";
     if ($("toggleSnapMode")) $("toggleSnapMode").checked = state.snapEnabled;
+    if ($("editorElementSemantic")) $("editorElementSemantic").value = $("editorElementSemantic").value || "walkable";
     if ($("toggleAutoIntersect")) $("toggleAutoIntersect").checked = state.autoIntersectEnabled;
     const editorMessageBox = $("editorMessageBox");
     if (editorMessageBox) editorMessageBox.textContent = state.editorMessage;
