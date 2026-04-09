@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>室內導航 + QR 校正點工具</title>
+  <title>LeafNav Studio - 室內導航工作台</title>
   <style>
     :root {
       --bg: #f8fafc;
@@ -15,6 +15,8 @@
       --primaryText: #ffffff;
       --secondary: #eef2f7;
       --danger: #b91c1c;
+      --brand-primary: #2563eb;
+      --brand-accent: #8b5cf6;
     }
     * { box-sizing: border-box; }
     body {
@@ -27,7 +29,7 @@
       position: sticky;
       top: 0;
       z-index: 20;
-      background: rgba(248,250,252,.95);
+      background: rgba(255,255,255,.88);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
     }
@@ -282,17 +284,57 @@
       padding: 10px;
       text-align: left;
     }
+    @media (max-width: 1100px) {
+      .grid, .qr-grid { grid-template-columns: 1fr; }
+    }
     @media (max-width: 960px) {
       .grid, .qr-grid { grid-template-columns: 1fr; }
     }
-  </style>
+  
+    .kiosk .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; }
+    .kiosk .wrap { max-width: 100%; padding-top: 84px; }
+    .kiosk .admin-only { display: none !important; }
+    .kiosk .card { border-radius: 20px; }
+    .kiosk .page { min-height: calc(100vh - 120px); }
+    .kiosk-hide { display: none !important; }
+    </style>
 </head>
 <body>
   <div class="topbar">
     <div class="topbar-inner">
-      <strong>室內導航工具箱</strong>
+      <div style="display:flex; align-items:center; gap:10px;"><div style="width:34px; height:34px; border-radius:12px; background:linear-gradient(135deg,var(--brand-primary),var(--brand-accent)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800;">L</div><div><div id="footerBrandName" style="font-weight:800;">LeafNav Studio</div><div id="brandTopSubtitle" style="font-size:12px; color:#64748b;">室內導航工作台</div></div></div>
+      <div class="btns" style="margin:0;">
+        <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#334155; background:#fff; border:1px solid #dbe3ee; border-radius:999px; padding:8px 10px;">
+          模式
+          <select id="appRoleSelect" style="border:none; background:transparent; font-size:13px; outline:none;">
+            <option value="admin">管理員</option>
+            <option value="tester">測試者</option>
+            <option value="user">使用者</option>
+          </select>
+        </label>
+        <button id="btnOpenAuth">登入管理員</button>
+        <button id="btnExportProject">匯出專案</button>
+        <button id="btnImportProject">匯入專案</button>
+        <button id="btnCreateSnapshot">建立快照</button>
+        <button id="btnOpenSnapshots">快照</button>
+        <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#334155; background:#fff; border:1px solid #dbe3ee; border-radius:999px; padding:8px 10px;">
+          <input id="toggleAutoSnapshot" type="checkbox" checked /> 自動快照
+        </label>
+        <button id="btnOpenLog">操作紀錄</button>
+        <button id="btnOpenCollab">協作同步</button>
+        <button id="btnOpenBranding">品牌設定</button>
+        <button id="btnOpenDemo">Demo 模式</button>
+        <button id="btnOpenTour">展示劇本</button>
+        <button id="btnExportRelease">發佈包</button>
+        <button id="btnToggleKiosk">簡報模式</button>
+        <input id="importProjectFile" type="file" accept="application/json" style="display:none;" />
+      </div>
       <div class="navtabs">
-        <button class="tabbtn active" data-page="navPage">導航</button>
+        <button class="tabbtn active" data-page="homePage">首頁</button>
+        <button class="tabbtn" data-page="navPage">導航</button>
+        <button class="tabbtn" data-page="setupPage">部署教學</button>
+        <button class="tabbtn" data-page="dashboardPage">任務報表</button>
+        <button class="tabbtn" data-page="acceptancePage">簽名驗收</button>
         <button class="tabbtn" data-page="qrPage">QR 產生器</button>
         <button class="tabbtn" data-page="mapEditorPage">地圖編輯</button>
       </div>
@@ -300,7 +342,415 @@
   </div>
 
   <div class="wrap">
-    <div id="navPage" class="page active">
+    <div id="tourOverlay" style="display:none; margin-bottom:16px;" class="alert">展示劇本準備中...</div>
+
+    <div id="homePage" class="page active">
+      <section class="card" style="margin-bottom:20px; overflow:hidden;">
+        <div style="padding:26px; background:linear-gradient(135deg,#0f172a 0%,var(--brand-primary) 55%,var(--brand-accent) 100%); color:#fff;">
+          <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center;">
+            <div style="max-width:760px;">
+              <div id="heroCompanyBadge" style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-bottom:12px;">LeafNav Studio · Indoor Navigation Prototype</div>
+              <h1 id="heroSlogan" style="margin:0 0 10px 0; font-size:32px; line-height:1.15;">把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台</h1>
+              <p id="heroDescription" style="margin:0; font-size:15px; line-height:1.8; color:rgba(255,255,255,.9);">適合展示、POC、內部測試與現場實驗。支援使用者 / 管理員雙入口、Anchor 與地圖雙向同步、多樓層導航、快照、專案匯入匯出與協作同步。</p>
+            </div>
+            <div style="min-width:240px; display:grid; gap:10px;">
+              <div style="padding:14px; border-radius:18px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.14);">
+                <div style="font-size:12px; color:rgba(255,255,255,.72);">產品定位</div>
+                <div style="font-size:18px; font-weight:700; margin-top:4px;">室內導航 SaaS Prototype</div>
+              </div>
+              <div style="padding:14px; border-radius:18px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.14);">
+                <div style="font-size:12px; color:rgba(255,255,255,.72);">目前版本</div>
+                <div style="font-size:18px; font-weight:700; margin-top:4px;">Launch UI Edition</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px;">
+        <section class="card">
+          <div class="card-header">
+            <h2>使用者入口</h2>
+            <div class="badges"><span class="badge">導航模式</span></div>
+          </div>
+          <div class="card-content">
+            <div class="alert">
+              適合一般使用者。直接開始導航、查看方向提示、剩餘距離與到點通知。
+            </div>
+            <div class="stats" style="margin-bottom:14px;">
+              <div class="stat"><div class="label">目前模式</div><div class="value" id="homeUserModeText">使用者</div></div>
+              <div class="stat"><div class="label">可用功能</div><div class="value">導航 / 提示 / 到點</div></div>
+            </div>
+            <div class="btns" style="margin-bottom:0;">
+              <button id="btnEnterUserMode" class="primary">開始導航</button>
+              <button id="btnGoNavigation" class="secondary">打開導航介面</button>
+            </div>
+          </div>
+        </section>
+
+
+        <section class="card">
+          <div class="card-header">
+            <h2>測試者入口</h2>
+            <div class="badges"><span class="badge">全功能測試</span></div>
+          </div>
+          <div class="card-content">
+            <div class="alert">
+              適合還沒有管理員權限、但需要完整測試功能的人。可使用大多數功能，不需先經過管理員登入。
+            </div>
+            <div class="stats" style="margin-bottom:14px;">
+              <div class="stat"><div class="label">目前模式</div><div class="value" id="homeTesterModeText">測試者</div></div>
+              <div class="stat"><div class="label">可用功能</div><div class="value">導航 / 地圖 / 報表 / Demo</div></div>
+            </div>
+            <div class="btns" style="margin-bottom:0;">
+              <button id="btnEnterTesterMode">進入測試者模式</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <h2>管理員入口</h2>
+            <div class="badges"><span class="badge">維護模式</span></div>
+          </div>
+          <div class="card-content">
+            <div class="alert">
+              適合地圖維護與測試人員。可進入地圖編輯、Anchor 管理、快照、同步與專案設定。
+            </div>
+            <div class="stats" style="margin-bottom:14px;">
+              <div class="stat"><div class="label">目前權限</div><div class="value" id="homeAdminStatusText">未解鎖</div></div>
+              <div class="stat"><div class="label">可用功能</div><div class="value">地圖 / Anchor / 專案</div></div>
+            </div>
+            <div class="btns" style="margin-bottom:0;">
+              <button id="btnEnterAdminMode">進入管理後台</button>
+              <button id="btnOpenAuthFromHome" class="secondary">登入管理員</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:repeat(4,1fr); gap:16px; margin-top:20px;">
+        <section class="card"><div class="card-content"><div class="badge" style="margin-bottom:10px;">定位</div><div style="font-size:20px; font-weight:800;">IMU + GPS + QR</div><div class="subtle">支援位置校正、方向校正、步長校正與 QR 重定位。</div></div></section>
+        <section class="card"><div class="card-content"><div class="badge" style="margin-bottom:10px;">建圖</div><div style="font-size:20px; font-weight:800;">Map Editor</div><div class="subtle">點、線、區域、樓層、路網、牆與限制區一體化編輯。</div></div></section>
+        <section class="card"><div class="card-content"><div class="badge" style="margin-bottom:10px;">導航</div><div style="font-size:20px; font-weight:800;">Multi-floor Routing</div><div class="subtle">多段路徑、自動找路、樓梯 / 電梯 / 無障礙偏好。</div></div></section>
+        <section class="card"><div class="card-content"><div class="badge" style="margin-bottom:10px;">協作</div><div style="font-size:20px; font-weight:800;">Project & Snapshot</div><div class="subtle">專案匯入匯出、快照、操作紀錄與 Firestore 協作同步。</div></div></section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        <section class="card">
+          <div class="card-header"><h3>快速開始</h3></div>
+          <div class="card-content hint">
+            <p>1. 一般使用者可按「開始導航」。</p>
+            <p>2. 管理員先登入，再切到管理員模式。</p>
+            <p>2-1. 若還沒有管理員權限，可先用測試者模式跑完整功能測試。</p>
+            <p>3. 管理員可在地圖編輯頁建立路網與 Anchor。</p>
+            <p>4. 使用者只需打開導航頁，選目標開始。</p>
+            <p>5. 品牌設定可把這套系統改成你的專案名稱、主色與 slogan。</p>
+            <p>6. 部署教學頁內建了 GitHub Pages、Firebase 與 Firestore 規則範本。</p>
+            <p>7. Demo 模式可一鍵載入假資料，方便展示與簡報。</p>
+            <p>8. 簡報模式可全螢幕展示並隱藏工程按鈕，適合現場 demo。</p>
+            <p>9. 展示劇本可一鍵依序切頁與播報說明，適合簡報流程。</p>
+            <p>10. 發佈包可一鍵下載 ZIP，直接拿去交付或備份。</p>
+            <p>11. 現在支援客戶版 / 內部測試版 / 展場展示版三種 Release Profile。</p>
+            <p>12. 多人即時定位可在同一個 Firebase Room 中同步顯示彼此位置。</p>
+            <p>13. 新增隊伍模式，可指定領隊並顯示與領隊距離，適合導覽與巡檢。</p>
+            <p>14. 現在支援掉隊警示與集合點模式，可提醒跟隊距離與集合狀態。</p>
+            <p>15. 任務點 / 巡檢模式可自動切下一個點，適合巡檢與導覽關卡。</p>
+            <p>16. 新增任務報表頁，可看完成率、照片回報數、各點狀態與未完成清單。</p>
+            <p>17. 新增測試者模式，在沒有管理者的情況下也能跑完整功能測試。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>目前專案摘要</h3></div>
+          <div class="card-content">
+            <div class="stats">
+              <div class="stat"><div class="label">Anchor 數量</div><div class="value" id="homeAnchorCount">0</div></div>
+              <div class="stat"><div class="label">地圖元素</div><div class="value" id="homeMapCount">0</div></div>
+              <div class="stat"><div class="label">導航歷史</div><div class="value" id="homeNavHistoryCount">0</div></div>
+              <div class="stat"><div class="label">快照數量</div><div class="value" id="homeSnapshotCount">0</div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+
+
+    <div id="setupPage" class="page">
+      <section class="card" style="margin-bottom:20px; overflow:hidden;">
+        <div style="padding:24px; background:linear-gradient(135deg,#0f172a 0%,var(--brand-primary) 55%,var(--brand-accent) 100%); color:#fff;">
+          <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center;">
+            <div style="max-width:860px;">
+              <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-bottom:12px;">Deployment Guide · Firebase Guide · Firestore Rules</div>
+              <h2 style="margin:0 0 10px 0; font-size:30px; line-height:1.15;">把這套室內導航原型真正部署成可測試、可協作、可交付的網站</h2>
+              <p style="margin:0; font-size:15px; line-height:1.8; color:rgba(255,255,255,.9);">這頁把 GitHub Pages、Firebase、Firestore、Auth 與協作同步的基本流程都整理在一起，方便你自己部署，也方便交接給別人。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px;">
+        <section class="card">
+          <div class="card-header"><h3>一、GitHub Pages 部署</h3></div>
+          <div class="card-content hint">
+            <p>1. 把目前最新版檔案改名成 <strong>index.html</strong>。</p>
+            <p>2. 建立或打開你的 GitHub repository。</p>
+            <p>3. 上傳 <strong>index.html</strong> 到 repo 根目錄。</p>
+            <p>4. 到 <strong>Settings → Pages</strong>。</p>
+            <p>5. Source 選 <strong>Deploy from a branch</strong>。</p>
+            <p>6. Branch 選 <strong>main</strong>，Folder 選 <strong>/ (root)</strong>。</p>
+            <p>7. 存檔後等 1 到 3 分鐘，GitHub 會給你公開網址。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>二、Firebase 專案建立</h3></div>
+          <div class="card-content hint">
+            <p>1. 到 Firebase Console 建立一個新專案。</p>
+            <p>2. 開啟 <strong>Firestore Database</strong>。</p>
+            <p>3. 在 Project settings 建立一個 <strong>Web app</strong>。</p>
+            <p>4. 複製 Web config JSON。</p>
+            <p>5. 回到本系統右上角 <strong>協作同步</strong>，把 JSON 貼進去。</p>
+            <p>6. 若要用 Firebase Auth，請到 Authentication 開啟 <strong>Email/Password</strong> provider。</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        <section class="card">
+          <div class="card-header"><h3>三、Firestore 規則範本</h3></div>
+          <div class="card-content">
+            <div class="subtle" style="margin-top:0; margin-bottom:10px;">下面是 prototype 用的簡化範本。正式環境請依你的需求加上更嚴格限制。</div>
+            <textarea id="firestoreRulesTemplate" readonly style="min-height:300px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 室內導航協作 room
+    match /indoorRooms/{roomId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}</textarea>
+            <div class="btns" style="margin-top:10px; margin-bottom:0;">
+              <button id="btnCopyFirestoreRules">複製 Firestore 規則</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>四、Firebase Config 範本</h3></div>
+          <div class="card-content">
+            <div class="subtle" style="margin-top:0; margin-bottom:10px;">把這段結構換成你自己 Firebase 專案的實際資料。</div>
+            <textarea id="firebaseConfigTemplate" readonly style="min-height:300px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;">{
+  "apiKey": "YOUR_API_KEY",
+  "authDomain": "YOUR_PROJECT.firebaseapp.com",
+  "projectId": "YOUR_PROJECT_ID",
+  "storageBucket": "YOUR_PROJECT.appspot.com",
+  "messagingSenderId": "YOUR_SENDER_ID",
+  "appId": "YOUR_APP_ID"
+}</textarea>
+            <div class="btns" style="margin-top:10px; margin-bottom:0;">
+              <button id="btnCopyFirebaseConfig">複製 Firebase Config 範本</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        <section class="card">
+          <div class="card-header"><h3>五、建議部署流程</h3></div>
+          <div class="card-content hint">
+            <p>1. 先在本機或 GitHub Pages 把單機版跑起來。</p>
+            <p>2. 確認 Anchor、地圖編輯、導航、快照都正常。</p>
+            <p>3. 再接 Firebase / Firestore 協作。</p>
+            <p>4. 最後再測管理員登入、使用者模式與多人同步。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>六、交付建議</h3></div>
+          <div class="card-content hint">
+            <p>1. 交付時至少附上：專案 JSON、快照 JSON、Firebase config。</p>
+            <p>2. 如果要給客戶 demo，建議先切成品牌化首頁版。</p>
+            <p>3. 若要正式上線，需再補 server-side 權限與更嚴格規則。</p>
+            <p>4. 可搭配你目前的首頁、管理員模式、協作同步一起展示。</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+
+
+    <div id="dashboardPage" class="page">
+      <section class="card" style="margin-bottom:20px; overflow:hidden;">
+        <div style="padding:24px; background:linear-gradient(135deg,#0f172a 0%,var(--brand-primary) 55%,var(--brand-accent) 100%); color:#fff;">
+          <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center;">
+            <div style="max-width:860px;">
+              <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-bottom:12px;">Mission Dashboard · Patrol Analytics · Report View</div>
+              <h2 style="margin:0 0 10px 0; font-size:30px; line-height:1.15;">任務報表 / Dashboard</h2>
+              <p style="margin:0; font-size:15px; line-height:1.8; color:rgba(255,255,255,.9);">把任務打卡、照片、備註與完成情況集中成一個報表頁，方便巡檢、導覽、任務追蹤與交付展示。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px;">
+        <section class="card">
+          <div class="card-header"><h3>任務總覽</h3></div>
+          <div class="card-content">
+            <div class="stats">
+              <div class="stat"><div class="label">任務回報數</div><div class="value" id="dashboardTotalReports">0</div></div>
+              <div class="stat"><div class="label">已打卡</div><div class="value" id="dashboardCheckedIn">0</div></div>
+              <div class="stat"><div class="label">自動到點</div><div class="value" id="dashboardAutoArrived">0</div></div>
+              <div class="stat"><div class="label">已跳過</div><div class="value" id="dashboardSkipped">0</div></div>
+              <div class="stat"><div class="label">照片數</div><div class="value" id="dashboardPhotoCount">0</div></div>
+              <div class="stat"><div class="label">完成率</div><div class="value" id="dashboardCompletionRate">0%</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>報表篩選</h3></div>
+          <div class="card-content">
+            <div class="row">
+              <label for="dashboardFilterStatus">狀態</label>
+              <select id="dashboardFilterStatus" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                <option value="all">全部</option>
+                <option value="checked-in">已打卡</option>
+                <option value="auto-arrived">自動到點</option>
+                <option value="skipped">已跳過</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="dashboardFilterFloor">樓層</label>
+              <select id="dashboardFilterFloor" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                <option value="all">全部</option>
+                <option value="1F">1F</option>
+                <option value="2F">2F</option>
+                <option value="3F">3F</option>
+                <option value="B1">B1</option>
+              </select>
+            </div>
+            <div class="btns" style="margin-bottom:0;">
+              <button id="btnRefreshDashboard">刷新報表</button>
+              <button id="btnExportDashboardSummary" class="secondary">匯出摘要</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        <section class="card">
+          <div class="card-header"><h3>各任務點狀態</h3></div>
+          <div class="card-content">
+            <div id="dashboardPointSummaryList" class="list" style="max-height:360px;">
+              <div class="item">尚無任務資料。</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>未完成任務點</h3></div>
+          <div class="card-content">
+            <div id="dashboardPendingList" class="list" style="max-height:360px;">
+              <div class="item">尚無未完成任務點。</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card" style="margin-top:20px;">
+        <div class="card-header"><h3>任務紀錄明細</h3></div>
+        <div class="card-content">
+          <div id="dashboardReportList" class="list" style="max-height:420px;">
+            <div class="item">尚無任務回報。</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+
+
+    <div id="acceptancePage" class="page">
+      <section class="card" style="margin-bottom:20px; overflow:hidden;">
+        <div style="padding:24px; background:linear-gradient(135deg,#0f172a 0%,var(--brand-primary) 55%,var(--brand-accent) 100%); color:#fff;">
+          <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center;">
+            <div style="max-width:860px;">
+              <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-bottom:12px;">Acceptance · Signature · Completion Review</div>
+              <h2 style="margin:0 0 10px 0; font-size:30px; line-height:1.15;">簽名確認 / 完成驗收</h2>
+              <p style="margin:0; font-size:15px; line-height:1.8; color:rgba(255,255,255,.9);">把任務報表、完成率與簽名確認整合在一起，適合巡檢交付、作業驗收、導覽活動結案與現場任務確認。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px;">
+        <section class="card">
+          <div class="card-header"><h3>驗收資訊</h3></div>
+          <div class="card-content">
+            <div class="row">
+              <label for="acceptanceReviewerInput">驗收人 / 確認人</label>
+              <input id="acceptanceReviewerInput" type="text" placeholder="例如：主管、場館窗口、客戶代表" />
+            </div>
+            <div class="row">
+              <label for="acceptanceTitleInput">驗收標題</label>
+              <input id="acceptanceTitleInput" type="text" placeholder="例如：3F 巡檢任務驗收 / Demo 展示完成確認" />
+            </div>
+            <div class="row">
+              <label for="acceptanceNoteInput">驗收備註</label>
+              <textarea id="acceptanceNoteInput" style="min-height:100px;" placeholder="可填寫驗收結論、現場狀況、待改善事項"></textarea>
+            </div>
+            <div class="btns" style="margin-bottom:0;">
+              <button id="btnClearSignature" class="secondary">清除簽名</button>
+              <button id="btnSaveAcceptance" class="primary">保存驗收紀錄</button>
+              <button id="btnExportAcceptance" class="secondary">匯出驗收紀錄</button>
+              <button id="btnExportAcceptancePdf" class="secondary">匯出 PDF 驗收單</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>手寫簽名</h3></div>
+          <div class="card-content">
+            <div class="map-wrap">
+              <canvas id="signatureCanvas" width="560" height="260" style="height:260px;"></canvas>
+            </div>
+            <div class="subtle" style="margin-top:10px;">可直接在手機或平板上手寫簽名。簽名會跟驗收資訊一起保存。</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        <section class="card">
+          <div class="card-header"><h3>驗收摘要</h3></div>
+          <div class="card-content">
+            <div class="stats">
+              <div class="stat"><div class="label">任務回報數</div><div class="value" id="acceptanceTotalReports">0</div></div>
+              <div class="stat"><div class="label">完成率</div><div class="value" id="acceptanceCompletionRate">0%</div></div>
+              <div class="stat"><div class="label">照片數</div><div class="value" id="acceptancePhotoCount">0</div></div>
+              <div class="stat"><div class="label">最後更新</div><div class="value" id="acceptanceLastUpdate">-</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h3>驗收紀錄清單</h3></div>
+          <div class="card-content">
+            <div class="btns" style="margin-bottom:10px;">
+              <button id="btnExportAllAcceptances">匯出全部驗收</button>
+              <button id="btnClearAcceptances" class="danger">清空驗收紀錄</button>
+            </div>
+            <div id="acceptanceRecordList" class="list" style="max-height:320px;">
+              <div class="item">尚無驗收紀錄。</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+
+    <div id="navPage" class="page">
       <div class="grid">
         <section class="card">
           <div class="card-header">
@@ -315,6 +765,10 @@
             <div class="alert" id="messageBox">先授權感測器與定位，再開始追蹤。</div>
 
             <div class="alert" id="guidanceBanner" style="background:#fff7ed; border-color:#fed7aa;">尚未開始導航。</div>
+
+            <div class="alert" id="roleModeBanner" style="display:none; background:#eff6ff; border-color:#bfdbfe;">目前是使用者模式：僅顯示導航功能，地圖編輯與專案管理已隱藏。</div>
+
+            <div class="alert" id="testerModeBanner" style="display:none; background:#ecfeff; border-color:#a5f3fc;">目前是測試者模式：不需管理員登入，也能測試大多數功能。</div>
 
             <div class="btn-row">
               <button class="primary" id="btnPermission">授權感測器與定位</button>
@@ -332,6 +786,15 @@
               <div class="slider-row">
                 <span>步長設定</span>
                 <span id="stepLengthValue">0.72 m</span>
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <label for="navCurrentFloorSelect">目前樓層</label>
+                <select id="navCurrentFloorSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="1F">1F</option>
+                  <option value="2F">2F</option>
+                  <option value="3F">3F</option>
+                  <option value="B1">B1</option>
+                </select>
               </div>
               <input type="range" id="stepLength" min="0.4" max="1.0" step="0.01" value="0.72" />
               <div class="subtle">先用手動步長校正，之後可改成依步頻或身高自動估計。</div>
@@ -356,7 +819,7 @@
             <div class="map-wrap">
               <canvas id="trackCanvas" width="560" height="560"></canvas>
             </div>
-            <div class="subtle" style="margin-top:10px;">紅色虛線為目前導航段，橘色虛線為後續段，藍點為已儲存校正點，紫線/綠點/黃區為地圖編輯圖層。</div>
+            <div class="subtle" style="margin-top:10px;">紅色虛線為目前導航段，橘色虛線為後續段，藍點為已儲存校正點，紫線/綠點/黃區為地圖編輯圖層，青色人員點為多人即時定位。</div>
           </div>
         </section>
 
@@ -445,6 +908,137 @@
           </section>
 
 
+
+          <section class="card" style="margin-bottom:16px;">
+            <div class="card-header"><h3>多人即時定位</h3></div>
+            <div class="card-content">
+              <div class="row">
+                <label for="liveUserNameInput">我的顯示名稱</label>
+                <input id="liveUserNameInput" type="text" placeholder="例如：Fox / Staff A / Guide 1" />
+              </div>
+              <div class="btns" style="margin-bottom:10px;">
+                <button id="btnToggleLiveTracking">開啟多人定位</button>
+                <button id="btnRefreshLiveUsers" class="secondary">刷新在線狀態</button>
+              </div>
+              <div class="row">
+                <label for="teamModeSelect">隊伍模式</label>
+                <select id="teamModeSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="solo">單人</option>
+                  <option value="leader">我是領隊</option>
+                  <option value="follower">跟隨領隊</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="teamLeaderSelect">選擇領隊</label>
+                <select id="teamLeaderSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="">尚未選擇</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="teamWarnDistanceInput">掉隊警戒距離（公尺）</label>
+                <input id="teamWarnDistanceInput" type="number" min="3" max="100" step="1" value="15" />
+              </div>
+              <div class="row">
+                <label for="teamMeetingPointSelect">集合點</label>
+                <select id="teamMeetingPointSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="">尚未指定</option>
+                </select>
+              </div>
+              <div class="stats">
+                <div class="stat">
+                  <div class="label">多人定位狀態</div>
+                  <div class="value" id="liveTrackingStatusText">off</div>
+                </div>
+                <div class="stat">
+                  <div class="label">在線人數</div>
+                  <div class="value" id="liveUserCountText">0</div>
+                </div>
+                <div class="stat">
+                  <div class="label">隊伍模式</div>
+                  <div class="value" id="teamModeStatusText">solo</div>
+                </div>
+                <div class="stat">
+                  <div class="label">與領隊距離</div>
+                  <div class="value" id="leaderDistanceText">-</div>
+                </div>
+                <div class="stat">
+                  <div class="label">集合點狀態</div>
+                  <div class="value" id="meetingPointStatusText">-</div>
+                </div>
+                <div class="stat">
+                  <div class="label">隊伍警示</div>
+                  <div class="value" id="teamAlertText">正常</div>
+                </div>
+              </div>
+              <div class="subtle" style="margin-top:10px;">需先連線 Firebase 協作同步，同一個 Room 內的裝置才能看到彼此位置。隊伍模式可指定領隊、集合點，並監看掉隊狀態。</div>
+            </div>
+          </section>
+
+
+          <section class="card" style="margin-bottom:16px;">
+            <div class="card-header"><h3>任務點 / 巡檢模式</h3></div>
+            <div class="card-content">
+              <div class="row">
+                <label for="missionPointsSelect">任務點（多選）</label>
+                <select id="missionPointsSelect" multiple size="6" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;"></select>
+              </div>
+              <div class="row">
+                <label for="missionArrivalThresholdInput">任務到點門檻（公尺）</label>
+                <input id="missionArrivalThresholdInput" type="number" min="1" max="20" step="0.5" value="3" />
+              </div>
+              <div class="btns" style="margin-bottom:10px;">
+                <button id="btnStartMissionMode" class="primary">開始任務</button>
+                <button id="btnStopMissionMode" class="secondary">停止任務</button>
+                <button id="btnClearMissionPoints" class="secondary">清空任務點</button>
+              </div>
+              <div class="stats">
+                <div class="stat">
+                  <div class="label">任務狀態</div>
+                  <div class="value" id="missionStatusText">idle</div>
+                </div>
+                <div class="stat">
+                  <div class="label">目前任務點</div>
+                  <div class="value" id="missionCurrentPointText">-</div>
+                </div>
+                <div class="stat">
+                  <div class="label">完成率</div>
+                  <div class="value" id="missionProgressText">0%</div>
+                </div>
+                <div class="stat">
+                  <div class="label">剩餘任務點</div>
+                  <div class="value" id="missionRemainingText">0</div>
+                </div>
+              </div>
+              <div class="row">
+                <label for="missionNoteInput">任務備註</label>
+                <textarea id="missionNoteInput" style="min-height:80px;" placeholder="到點後可輸入巡檢狀況、備註或回報內容"></textarea>
+              </div>
+              <div class="row">
+                <label for="missionPhotoInput">任務照片</label>
+                <input id="missionPhotoInput" type="file" accept="image/*" capture="environment" />
+              </div>
+              <div class="btns" style="margin-bottom:0;">
+                <button id="btnMissionCheckIn" class="primary">任務點打卡</button>
+                <button id="btnMissionSkip" class="secondary">跳過此點</button>
+              </div>
+              <div class="subtle" style="margin-top:10px;">適合巡檢、導覽關卡、清點路線。到達一個任務點後，系統會自動切換到下一個，也可手動打卡、附照片與備註。</div>
+            </div>
+          </section>
+
+
+          <section class="card" style="margin-bottom:16px;">
+            <div class="card-header"><h3>任務回報紀錄</h3></div>
+            <div class="card-content">
+              <div class="btns" style="margin-bottom:10px;">
+                <button id="btnExportMissionReports">匯出任務紀錄</button>
+                <button id="btnClearMissionReports" class="danger">清空任務紀錄</button>
+              </div>
+              <div id="missionReportList" class="list" style="max-height:260px;">
+                <div class="item">尚無任務回報。</div>
+              </div>
+            </div>
+          </section>
+
           <section class="card" style="margin-bottom:16px;">
             <div class="card-header"><h3>目標導引</h3></div>
             <div class="card-content">
@@ -464,6 +1058,15 @@
                   <option value="direct">直接連線</option>
                   <option value="multi">多段路徑</option>
                   <option value="network">沿線段自動找路</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="routePreferenceSelect">路線偏好</label>
+                <select id="routePreferenceSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="normal">一般</option>
+                  <option value="elevator">電梯優先</option>
+                  <option value="stairs">樓梯優先</option>
+                  <option value="accessible">無障礙</option>
                 </select>
               </div>
               <div class="row">
@@ -504,6 +1107,13 @@
               <p>3. 按「開始追蹤」後再走動。</p>
               <p>4. 訊號好時做位置校正，固定手機做方向校正。</p>
               <p>5. 也可以切到上方「QR 產生器」頁做 QR 校正點。</p>
+              <p>6. 右上角可匯出 / 匯入整個專案檔，方便備份或換裝置。</p>
+              <p>7. 現在也支援快照 / 復原點，編輯地圖前可先存一版。</p>
+              <p>8. 開啟自動快照後，匯入專案、清空資料、同步大量資料前都會自動留底。</p>
+              <p>9. 右上角的協作同步可接 Firebase Firestore，讓多支手機即時共享同一套資料。</p>
+              <p>10. 現在支援管理員 / 使用者模式切換，使用者模式只保留簡化導航功能。</p>
+              <p>11. 管理員模式現在可用本地密碼或 Firebase Email Sign-in 雛形解鎖。</p>
+              <p>12. 新增首頁入口，讓一般使用者與管理員從一開始就走不同流程。</p>
             </div>
           </section>
         </div>
@@ -518,6 +1128,16 @@
             <div class="row">
               <label for="anchorName">校正點名稱</label>
               <input id="anchorName" placeholder="例如：入口 A、電梯口、會議室外" />
+            </div>
+
+            <div class="row">
+              <label for="anchorFloorSelect">樓層</label>
+              <select id="anchorFloorSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                <option value="1F">1F</option>
+                <option value="2F">2F</option>
+                <option value="3F">3F</option>
+                <option value="B1">B1</option>
+              </select>
             </div>
 
             <div class="row">
@@ -615,12 +1235,30 @@
               </div>
               <input id="editorNameInput" type="text" placeholder="例如：走廊 A、入口大廳、會議室區" />
               <div style="margin-top:10px;" class="row">
+                <label for="editorFloorSelect">編輯樓層</label>
+                <select id="editorFloorSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="1F">1F</option>
+                  <option value="2F">2F</option>
+                  <option value="3F">3F</option>
+                  <option value="B1">B1</option>
+                </select>
+              </div>
+              <div style="margin-top:10px;" class="row">
                 <label for="editorElementSemantic">元素語義</label>
                 <select id="editorElementSemantic" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
                   <option value="walkable">可通行</option>
                   <option value="wall">牆 / 障礙</option>
                   <option value="restricted">限制區域</option>
                   <option value="landmark">地標</option>
+                  <option value="connector">樓梯 / 電梯連接</option>
+                </select>
+              </div>
+              <div style="margin-top:10px;" class="row">
+                <label for="editorConnectorType">connector 類型</label>
+                <select id="editorConnectorType" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                  <option value="stairs">樓梯</option>
+                  <option value="elevator">電梯</option>
+                  <option value="ramp">坡道</option>
                 </select>
               </div>
               <div class="subtle">新增點位時會以這個名稱建立標記。新增線段/區域時會以這個名稱記錄元素，並附帶可通行/牆/限制區域等語義。</div>
@@ -671,6 +1309,34 @@
                     <option value="wall">牆 / 障礙</option>
                     <option value="restricted">限制區域</option>
                     <option value="landmark">地標</option>
+                    <option value="connector">樓梯 / 電梯連接</option>
+                  </select>
+                </div>
+                <div class="row">
+                  <label for="selectedMapElementFloor">樓層</label>
+                  <select id="selectedMapElementFloor" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                    <option value="1F">1F</option>
+                    <option value="2F">2F</option>
+                    <option value="3F">3F</option>
+                    <option value="B1">B1</option>
+                  </select>
+                </div>
+                <div class="row">
+                  <label for="selectedMapElementLinkFloor">連接到樓層（connector 用）</label>
+                  <select id="selectedMapElementLinkFloor" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                    <option value="">不設定</option>
+                    <option value="1F">1F</option>
+                    <option value="2F">2F</option>
+                    <option value="3F">3F</option>
+                    <option value="B1">B1</option>
+                  </select>
+                </div>
+                <div class="row">
+                  <label for="selectedMapElementConnectorType">connector 類型</label>
+                  <select id="selectedMapElementConnectorType" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+                    <option value="stairs">樓梯</option>
+                    <option value="elevator">電梯</option>
+                    <option value="ramp">坡道</option>
                   </select>
                 </div>
                 <div class="btns" style="margin-bottom:0;">
@@ -696,11 +1362,398 @@
               <p>6. 線段元素可作為路網，讓導航頁沿地圖線段自動找路。</p>
               <p>7. 啟用吸附與交點節點化後，路網會更容易連通，找路更穩。</p>
               <p>8. 把線段或區域標成牆 / 限制區域後，路徑規劃會盡量避開。</p>
+              <p>9. 現在支援多樓層：點、線、區域、Anchor 都能指定樓層，connector 點可連接到其他樓層。</p>
+              <p>10. 多樓層導航現在支援一般 / 電梯優先 / 樓梯優先 / 無障礙偏好。</p>
             </div>
           </section>
         </div>
       </div>
     </div>
+
+
+
+
+
+
+
+
+
+
+
+  <div id="releaseModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:86; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,860px); max-height:84vh; overflow:auto; border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
+        <strong>一鍵打包發佈版（Release Bundle）</strong>
+        <div class="btns" style="margin:0;">
+          <button id="btnCloseRelease">關閉</button>
+        </div>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="formbox">
+          <div class="row">
+            <label for="releaseProjectName">Release 專案名稱</label>
+            <input id="releaseProjectName" type="text" value="leafnav-release" />
+          </div>
+          <div class="row">
+            <label for="releaseProfileSelect">Release Profile</label>
+            <select id="releaseProfileSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+              <option value="client">客戶版</option>
+              <option value="internal">內部測試版</option>
+              <option value="event">展場展示版</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="releaseAudience">交付對象</label>
+            <select id="releaseAudience" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+              <option value="client">客戶 demo</option>
+              <option value="internal">內部測試</option>
+              <option value="partner">合作夥伴</option>
+              <option value="event">展場展示</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="releaseIncludeDemo">包含 Demo 專案資料</label>
+            <select id="releaseIncludeDemo" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+              <option value="yes">是</option>
+              <option value="no">否</option>
+            </select>
+          </div>
+          <div class="btns" style="margin-bottom:0;">
+            <button id="btnBuildReleaseZip" class="primary">下載 Release ZIP</button>
+            <button id="btnBuildReleaseDocs" class="secondary">只下載說明文件</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="card-header" style="padding:0 0 10px 0;"><h3>打包內容</h3></div>
+          <div class="card-content" style="padding:0;">
+            <div class="hint">
+              <p>1. <strong>index.html</strong>：目前網站主檔。</p>
+              <p>2. <strong>project.json</strong>：目前專案資料。</p>
+              <p>3. <strong>README.txt</strong>：部署與使用說明。</p>
+              <p>4. <strong>CHECKLIST.txt</strong>：交付檢查清單。</p>
+              <p>5. Release Profile 會自動調整預設內容與交付重點。</p>
+            </div>
+            <div class="alert" id="releaseStatusBanner" style="margin-top:12px;">尚未建立發佈包。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tourModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:85; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,860px); max-height:84vh; overflow:auto; border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
+        <strong>展示劇本模式（Scripted Tour）</strong>
+        <div class="btns" style="margin:0;">
+          <button id="btnCloseTour">關閉</button>
+        </div>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="formbox">
+          <div class="row">
+            <label for="tourPresetSelect">劇本預設</label>
+            <select id="tourPresetSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+              <option value="standard">標準產品導覽</option>
+              <option value="navigation">導航功能導覽</option>
+              <option value="admin">管理後台導覽</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="tourStepSeconds">每步停留秒數</label>
+            <input id="tourStepSeconds" type="number" min="3" max="30" step="1" value="8" />
+          </div>
+          <div class="btns" style="margin-bottom:0;">
+            <button id="btnStartTour" class="primary">開始展示劇本</button>
+            <button id="btnStopTour" class="secondary">停止劇本</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="card-header" style="padding:0 0 10px 0;"><h3>目前劇本狀態</h3></div>
+          <div class="card-content" style="padding:0;">
+            <div class="alert" id="tourStatusBanner" style="margin:0 0 12px 0;">尚未開始展示劇本。</div>
+            <div class="subtle">開始後會自動切頁、顯示導覽文字，並依序展示首頁、導航、QR / Anchor、地圖編輯、部署教學等頁面。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="kioskModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:80; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(92vw,640px); border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <strong>簡報模式（Kiosk）</strong>
+        <button id="btnCloseKioskModal">關閉</button>
+      </div>
+      <div class="hint">
+        <p>簡報模式會隱藏多數工程按鈕，保留首頁與導航展示流程，適合客戶 demo 與現場展示。</p>
+      </div>
+      <div class="row">
+        <label for="kioskAutoRotate">自動輪播頁面（每 10 秒）</label>
+        <input id="kioskAutoRotate" type="checkbox" />
+      </div>
+      <div class="btns" style="margin-bottom:0;">
+        <button id="btnStartKiosk" class="primary">啟動簡報模式</button>
+        <button id="btnStopKiosk" class="secondary">退出簡報模式</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="demoModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,860px); max-height:84vh; overflow:auto; border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
+        <strong>Demo 展示模式</strong>
+        <div class="btns" style="margin:0;">
+          <button id="btnCloseDemo">關閉</button>
+        </div>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="formbox">
+          <div class="row">
+            <label for="demoProjectName">Demo 專案名稱</label>
+            <input id="demoProjectName" type="text" value="LeafNav Demo Building" />
+          </div>
+          <div class="row">
+            <label for="demoFloorCount">樓層數</label>
+            <select id="demoFloorCount" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+              <option value="1">單樓層</option>
+              <option value="2" selected>雙樓層</option>
+              <option value="3">三樓層</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="demoScenarioSelect">展示場景</label>
+            <select id="demoScenarioSelect" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; font-size:15px; background:white;">
+              <option value="office">辦公室</option>
+              <option value="mall">商場</option>
+              <option value="campus">校園館舍</option>
+              <option value="hospital">醫療院所</option>
+            </select>
+          </div>
+          <div class="btns" style="margin-bottom:0;">
+            <button id="btnLoadDemoProject" class="primary">一鍵載入 Demo 資料</button>
+            <button id="btnStartDemoTour" class="secondary">開始展示導覽</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="card-header" style="padding:0 0 10px 0;"><h3>展示用途</h3></div>
+          <div class="card-content" style="padding:0;">
+            <div class="hint">
+              <p>1. 一鍵建立 Anchor、地圖元素、樓層路網與展示歷史。</p>
+              <p>2. 適合現場簡報、客戶 demo、團隊演示。</p>
+              <p>3. 可直接切到首頁、導航頁或地圖編輯頁展示。</p>
+              <p>4. 搭配品牌設定後，可以快速做客製化展示版。</p>
+            </div>
+            <div class="formbox" style="margin-top:12px;">
+              <div><strong>目前 Demo 狀態</strong></div>
+              <div class="subtle" id="demoStatusText" style="margin-top:8px;">尚未載入 demo 資料。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="brandingModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,820px); max-height:84vh; overflow:auto; border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
+        <strong>品牌客製化設定</strong>
+        <div class="btns" style="margin:0;">
+          <button id="btnCloseBranding">關閉</button>
+        </div>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="formbox">
+          <div class="row">
+            <label for="brandNameInput">品牌名稱</label>
+            <input id="brandNameInput" type="text" placeholder="例如：LeafNav Studio" />
+          </div>
+          <div class="row">
+            <label for="brandSubtitleInput">副標題</label>
+            <input id="brandSubtitleInput" type="text" placeholder="例如：室內導航工作台" />
+          </div>
+          <div class="row">
+            <label for="brandSloganInput">首頁主標語</label>
+            <textarea id="brandSloganInput" style="min-height:90px;" placeholder="例如：把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台"></textarea>
+          </div>
+          <div class="row">
+            <label for="brandDescriptionInput">首頁說明文字</label>
+            <textarea id="brandDescriptionInput" style="min-height:120px;" placeholder="例如：適合展示、POC、內部測試與現場實驗。"></textarea>
+          </div>
+          <div class="row">
+            <label for="brandPrimaryColorInput">主色</label>
+            <input id="brandPrimaryColorInput" type="color" value="#2563eb" />
+          </div>
+          <div class="row">
+            <label for="brandAccentColorInput">強調色</label>
+            <input id="brandAccentColorInput" type="color" value="#8b5cf6" />
+          </div>
+          <div class="row">
+            <label for="brandCompanyInput">公司 / 團隊名稱</label>
+            <input id="brandCompanyInput" type="text" placeholder="例如：先生 葉 工作空間" />
+          </div>
+          <div class="btns" style="margin-bottom:0;">
+            <button id="btnSaveBranding" class="primary">儲存品牌設定</button>
+            <button id="btnResetBranding" class="secondary">恢復預設</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="card-header" style="padding:0 0 10px 0;"><h3>即時預覽</h3></div>
+          <div class="card-content" style="padding:0;">
+            <div id="brandingPreviewCard" style="padding:22px; border-radius:20px; color:#fff; background:linear-gradient(135deg,#0f172a 0%,#2563eb 55%,#8b5cf6 100%);">
+              <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-bottom:12px;">
+                <span id="brandingPreviewCompany">LeafNav Studio</span>
+              </div>
+              <h2 id="brandingPreviewName" style="margin:0 0 8px 0; font-size:28px;">LeafNav Studio</h2>
+              <div id="brandingPreviewSubtitle" style="font-size:14px; color:rgba(255,255,255,.82); margin-bottom:12px;">室內導航工作台</div>
+              <div id="brandingPreviewSlogan" style="font-size:20px; font-weight:800; line-height:1.4; margin-bottom:10px;">把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台</div>
+              <div id="brandingPreviewDescription" style="font-size:14px; line-height:1.8; color:rgba(255,255,255,.9);">適合展示、POC、內部測試與現場實驗。支援使用者 / 管理員雙入口、Anchor 與地圖雙向同步、多樓層導航、快照、專案匯入匯出與協作同步。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(92vw,520px); border-radius:16px; padding:16px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong>登入管理員 / 權限驗證</strong>
+        <button id="btnCloseAuth">關閉</button>
+      </div>
+      <div class="subtle" style="margin-top:0; margin-bottom:12px;">
+        這是前端權限雛形。你可以先用本地管理員密碼保護管理員模式；若已設定 Firebase config，也可啟用 Firebase Email Sign-in 雛形。
+      </div>
+
+      <div class="formbox" style="margin-bottom:12px;">
+        <div class="row">
+          <label for="adminPasswordInput">本地管理員密碼</label>
+          <input id="adminPasswordInput" type="password" placeholder="輸入管理員密碼" />
+        </div>
+        <div class="btns" style="margin-bottom:0;">
+          <button id="btnUnlockAdmin" class="primary">解鎖管理員模式</button>
+          <button id="btnLockAdmin" class="secondary">鎖定回使用者模式</button>
+          <button id="btnSetAdminPassword">設定 / 更新密碼</button>
+        </div>
+      </div>
+
+      <div class="formbox">
+        <div><strong>Firebase Auth 雛形</strong></div>
+        <div class="subtle" style="margin-top:8px; margin-bottom:10px;">
+          若你的 Firebase 專案已啟用 Authentication 與 Email/Password provider，可用下面方式登入。這版是 prototype，主要用來驗證流程。
+        </div>
+        <div class="row">
+          <label for="authEmailInput">Email</label>
+          <input id="authEmailInput" type="email" placeholder="admin@example.com" />
+        </div>
+        <div class="row">
+          <label for="authPasswordInput">Password</label>
+          <input id="authPasswordInput" type="password" placeholder="Firebase Auth 密碼" />
+        </div>
+        <div class="btns" style="margin-bottom:0;">
+          <button id="btnFirebaseLogin">Firebase 登入</button>
+          <button id="btnFirebaseLogout" class="secondary">Firebase 登出</button>
+        </div>
+      </div>
+
+      <div class="alert" id="authStatusBanner" style="margin-top:12px; background:#f8fafc;">尚未登入管理員。</div>
+    </div>
+  </div>
+
+  <div id="collabModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,860px); max-height:84vh; overflow:auto; border-radius:16px; padding:14px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:12px; flex-wrap:wrap;">
+        <strong>即時協作同步（Firebase / Firestore）</strong>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="badge" id="collabStatusBadge">idle</span>
+          <button id="btnCloseCollab">關閉</button>
+        </div>
+      </div>
+      <div class="subtle" style="margin-top:0; margin-bottom:12px;">
+        這個模式可讓兩支以上手機透過同一個 Firebase Firestore room 即時同步 Anchor、地圖元素、導航歷史、快照、操作紀錄與主要設定。
+        你需要先建立自己的 Firebase 專案，並把 Web config JSON 貼進來。
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:14px;">
+        <div class="formbox">
+          <div class="row">
+            <label for="collabRoomId">Room ID</label>
+            <input id="collabRoomId" type="text" placeholder="例如 building-a-demo" />
+          </div>
+          <div class="row">
+            <label for="collabConfigText">Firebase Web Config JSON</label>
+            <textarea id="collabConfigText" style="min-height:220px;" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+          </div>
+          <div class="btns" style="margin-bottom:0;">
+            <button id="btnConnectCollab" class="primary">連線同步</button>
+            <button id="btnDisconnectCollab" class="secondary">中斷同步</button>
+            <button id="btnSaveCollabSettings">儲存設定</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="card-header" style="padding:0 0 10px 0;"><h3>使用步驟</h3></div>
+          <div class="card-content" style="padding:0;">
+            <div class="hint">
+              <p>1. 到 Firebase 建一個專案，開啟 Firestore。</p>
+              <p>2. 在 Project settings 建立 Web app，複製 config JSON。</p>
+              <p>3. 把 config JSON 貼進這裡，再輸入同一個 Room ID。</p>
+              <p>4. 兩台手機都按「連線同步」，之後修改資料會近即時同步。</p>
+              <p>5. 建議搭配右上角快照功能，避免多人測試時誤改。</p>
+            </div>
+            <div class="formbox" style="margin-top:12px;">
+              <div><strong>目前同步內容</strong></div>
+              <div class="subtle" style="margin-top:8px;">
+                anchors、mapElements、navHistory、snapshots、logs、settings
+              </div>
+            </div>
+            <div class="formbox" style="margin-top:12px;">
+              <div><strong>注意</strong></div>
+              <div class="subtle" style="margin-top:8px;">
+                這是前端直連 Firestore 的協作模式。請用你自己的 Firebase 專案，並自行設定 Firestore 安全規則。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="logModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,760px); max-height:84vh; overflow:auto; border-radius:16px; padding:14px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong>操作紀錄</strong>
+        <button id="btnCloseLog">關閉</button>
+      </div>
+      <div id="logList" class="list"></div>
+    </div>
+  </div>
+
+  <div id="snapshotModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; align-items:center; justify-content:center;">
+    <div style="background:#fff; width:min(94vw,760px); max-height:84vh; overflow:auto; border-radius:16px; padding:14px; border:1px solid #dbe3ee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:12px;">
+        <strong>專案快照 / 復原點</strong>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="btnExportSnapshots" style="border:1px solid #dbe3ee; border-radius:12px; padding:6px 10px; background:#fff;">匯出快照</button>
+          <button id="btnImportSnapshots" style="border:1px solid #dbe3ee; border-radius:12px; padding:6px 10px; background:#fff;">匯入快照</button>
+          <input id="importSnapshotsFile" type="file" accept="application/json" style="display:none;" />
+          <button id="btnClearSnapshots" style="border:1px solid #fecaca; color:#b91c1c; border-radius:12px; padding:6px 10px; background:#fff;">清空快照</button>
+          <button id="btnCloseSnapshots" style="border:1px solid #dbe3ee; border-radius:12px; padding:6px 10px; background:#fff;">關閉</button>
+        </div>
+      </div>
+      <div style="font-size:12px; color:#64748b; margin-bottom:10px;">每次建立快照會保存目前的 Anchor、地圖元素、導航歷史與設定。可隨時復原。</div>
+      <div id="snapshotList" class="list" style="max-height:64vh;">
+        <div class="item">尚無快照。</div>
+      </div>
+    </div>
+  </div>
 
 
   <div id="qrModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; align-items:center; justify-content:center;">
@@ -715,6 +1768,8 @@
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <script>
 (() => {
   const SAMPLE_MS = 250;
@@ -784,7 +1839,58 @@
     plannedRoutePoints: [],
     snapEnabled: true,
     autoIntersectEnabled: true,
-    snapThreshold: 1.2
+    snapThreshold: 1.2,
+    currentFloor: "1F",
+    routePreference: "normal",
+    snapshots: [],
+    autoSnapshotEnabled: true,
+    logs: [],
+    collabStatus: "idle",
+    collabRoomId: "",
+    collabConfigText: "",
+    collabDirty: false,
+    applyingRemote: false,
+    collabDb: null,
+    collabUnsub: null,
+    lastRemoteTs: 0,
+    lastPushedTs: 0,
+    appRole: "admin",
+    adminUnlocked: false,
+    firebaseAuthStatus: "idle",
+    firebaseUserEmail: "",
+    branding: {
+      name: "LeafNav Studio",
+      subtitle: "室內導航工作台",
+      slogan: "把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台",
+      description: "適合展示、POC、內部測試與現場實驗。支援使用者 / 管理員雙入口、Anchor 與地圖雙向同步、多樓層導航、快照、專案匯入匯出與協作同步。",
+      primaryColor: "#2563eb",
+      accentColor: "#8b5cf6",
+      company: "LeafNav Studio"
+    },
+    demoLoaded: false,
+    demoStatus: "尚未載入 demo 資料。",
+    kioskMode: false,
+    kioskAutoRotate: false,
+    kioskTimer: null,
+    kioskPages: ["homePage","navPage"],
+    kioskIndex: 0,
+    tourRunning: false,
+    tourTimer: null,
+    tourSteps: [],
+    tourStepIndex: 0,
+    tourStatus: "尚未開始展示劇本。",
+    releaseStatus: "尚未建立發佈包。",
+    liveTrackingEnabled: false,
+    liveUserId: "live_" + Math.random().toString(36).slice(2, 10),
+    liveUserName: "Guest",
+    liveUsers: {},
+    liveUsersUnsub: null,
+    liveUpdateTimer: null,
+    teamMode: "solo",
+    selectedLeaderId: "",
+    teamWarnDistance: 15,
+    meetingPointId: "",
+    lastTeamAlertKey: ""
   };
 
   let geoWatchId = null;
@@ -892,13 +1998,13 @@
   function drawMapElementsOnCanvas(ctx, withLabels = true) {
     if (!state.showMapOverlay || !state.mapElements.length) return;
 
-    state.mapElements.slice().reverse().forEach((el) => {
+    state.mapElements.slice().reverse().filter((el) => withLabels ? ((el.floor || currentNavFloor()) === (document.getElementById("editorCanvas") && ctx.canvas.id === "editorCanvas" ? currentEditorFloor() : currentNavFloor())) : true).forEach((el) => {
       const isSelected = el.id === state.selectedMapElementId;
       const semantic = el.semantic || "walkable";
       if (el.type === "point") {
         const x = CENTER + Number(el.x || 0) * SCALE;
         const y = CENTER + Number(el.y || 0) * SCALE;
-        ctx.fillStyle = isSelected ? "#ef4444" : (semantic === "landmark" ? "#0ea5e9" : semantic === "restricted" ? "#f59e0b" : "#059669");
+        ctx.fillStyle = isSelected ? "#ef4444" : (semantic === "connector" ? "#8b5cf6" : semantic === "landmark" ? "#0ea5e9" : semantic === "restricted" ? "#f59e0b" : "#059669");
         ctx.beginPath();
         ctx.arc(x, y, 5, 0, Math.PI * 2);
         ctx.fill();
@@ -965,7 +2071,7 @@
 
     if (state.showAnchorOverlay && state.savedAnchors.length) {
       ctx.font = "12px system-ui, sans-serif";
-      state.savedAnchors.forEach((a) => {
+      state.savedAnchors.filter((a) => (a.floor || "1F") === currentNavFloor()).forEach((a) => {
         const x = CENTER + Number(a.x || 0) * SCALE;
         const y = CENTER + Number(a.y || 0) * SCALE;
 
@@ -993,6 +2099,85 @@
         ctx.fillStyle = "#1e3a8a";
         ctx.fillText(label, textX, textY);
       });
+    }
+
+    const liveNow = Date.now();
+    const liveUsersOnFloor = Object.values(state.liveUsers || {})
+      .filter((u) => (u.floor || "1F") === currentNavFloor() && liveNow - Number(u.updatedAt || 0) < 15000);
+
+    liveUsersOnFloor.forEach((u) => {
+      const x = CENTER + Number(u.x || 0) * SCALE;
+      const y = CENTER + Number(u.y || 0) * SCALE;
+      const isSelf = u.userId === state.liveUserId;
+      const isLeader = u.teamMode === "leader";
+
+      ctx.fillStyle = isLeader ? "#0ea5e9" : (isSelf ? "#06b6d4" : "#14b8a6");
+      ctx.beginPath();
+      ctx.arc(x, y, isLeader ? 10 : (isSelf ? 9 : 7), 0, Math.PI * 2);
+      ctx.fill();
+
+      const rad = (Number(u.heading || 0) * Math.PI) / 180;
+      ctx.strokeStyle = isLeader ? "#0369a1" : (isSelf ? "#0891b2" : "#0f766e");
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.sin(rad) * 16, y - Math.cos(rad) * 16);
+      ctx.stroke();
+
+      const label = `${u.name || "User"}${isLeader ? " [領隊]" : ""}${isSelf ? " (我)" : ""}`;
+      ctx.font = "12px system-ui, sans-serif";
+      const metrics = ctx.measureText(label);
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillRect(x + 10 - 4, y + 16 - 12, metrics.width + 8, 18);
+      ctx.fillStyle = "#155e75";
+      ctx.fillText(label, x + 10, y + 16);
+    });
+
+    if (state.teamMode === "follower") {
+      const leader = selectedLeaderUser();
+      if (leader && (leader.floor || "1F") === currentNavFloor()) {
+        const me = currentLivePosePayload();
+        const x1 = CENTER + Number(me.x || 0) * SCALE;
+        const y1 = CENTER + Number(me.y || 0) * SCALE;
+        const x2 = CENTER + Number(leader.x || 0) * SCALE;
+        const y2 = CENTER + Number(leader.y || 0) * SCALE;
+        ctx.strokeStyle = "#22c55e";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    const missionTarget = currentMissionAnchor();
+    if (missionTarget && (missionTarget.floor || "1F") === currentNavFloor()) {
+      const tx = CENTER + Number(missionTarget.x || 0) * SCALE;
+      const ty = CENTER + Number(missionTarget.y || 0) * SCALE;
+      ctx.strokeStyle = "#22c55e";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(tx, ty, 15, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.fillStyle = "#166534";
+      ctx.fillText(`任務點：${missionTarget.name || "Mission"}`, tx + 16, ty + 18);
+    }
+
+    const teamMeeting = selectedMeetingPoint();
+    if (teamMeeting && (teamMeeting.floor || "1F") === currentNavFloor()) {
+      const mx = CENTER + Number(teamMeeting.x || 0) * SCALE;
+      const my = CENTER + Number(teamMeeting.y || 0) * SCALE;
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(mx, my, 13, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.fillStyle = "#92400e";
+      ctx.fillText(`集合點：${teamMeeting.name || "Meeting"}`, mx + 14, my - 8);
     }
 
     if (!state.trail.length) return;
@@ -1145,11 +2330,11 @@
 
     const currentTarget = state.navTargetId || "";
     targetSel.innerHTML = ['<option value="">請先選擇目標</option>']
-      .concat(state.savedAnchors.map(a => `<option value="${a.id}">${a.name} (x:${a.x}, y:${a.y}${a.heading == null ? "" : ", h:" + a.heading})</option>`))
+      .concat(state.savedAnchors.map(a => `<option value="${a.id}">${a.name} [${a.floor || "1F"}] (x:${a.x}, y:${a.y}${a.heading == null ? "" : ", h:" + a.heading})</option>`))
       .join("");
     targetSel.value = currentTarget;
 
-    wpSel.innerHTML = state.savedAnchors.map(a => `<option value="${a.id}">${a.name} (x:${a.x}, y:${a.y}${a.heading == null ? "" : ", h:" + a.heading})</option>`).join("");
+    wpSel.innerHTML = state.savedAnchors.map(a => `<option value="${a.id}">${a.name} [${a.floor || "1F"}] (x:${a.x}, y:${a.y}${a.heading == null ? "" : ", h:" + a.heading})</option>`).join("");
     Array.from(wpSel.options).forEach(opt => {
       opt.selected = state.waypointIds.includes(opt.value);
     });
@@ -1195,7 +2380,7 @@
       return;
     }
 
-    summary.textContent = `目標：${target.name}；總距離約 ${fmt(totalDist, 1)} m${via}；下一點 ${active.to.name || "目標"}，距離約 ${fmt(nextDist, 1)} m；建議 ${turnText}。`;
+    summary.textContent = `目標：${target.name} [${target.floor || currentNavFloor()}]；偏好：${routePreferenceLabel(state.routePreference)}；總距離約 ${fmt(totalDist, 1)} m${via}；下一點 ${active.to.name || "目標"}，距離約 ${fmt(nextDist, 1)} m；建議 ${turnText}。`;
   }
 
   function setRouteMode() {
@@ -1527,7 +2712,8 @@
     renderNavHistory();
   }
 
-  function persistNavHistory() {
+  function persistNavHistory()
+    markCollabDirty(); {
     localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
     renderNavHistory();
   }
@@ -1668,7 +2854,8 @@
     renderMapElements();
   }
 
-  function persistMapElements() {
+  function persistMapElements()
+    markCollabDirty(); {
     localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
     renderMapElements();
     drawEditorCanvas();
@@ -1739,6 +2926,9 @@
         x: Number(world.x.toFixed(2)),
         y: Number(world.y.toFixed(2)),
         semantic: currentEditorSemantic(),
+        floor: currentEditorFloor(),
+        linkFloor: "",
+        connectorType: $("editorConnectorType")?.value || "stairs",
         createdAt: now
       });
       setEditorMessage(`已新增點位：${name} (${world.x.toFixed(1)}, ${world.y.toFixed(1)})`);
@@ -1764,6 +2954,9 @@
           { x: Number(b.x.toFixed(2)), y: Number(b.y.toFixed(2)) }
         ],
         semantic: currentEditorSemantic(),
+        floor: currentEditorFloor(),
+        linkFloor: "",
+        connectorType: $("editorConnectorType")?.value || "stairs",
         createdAt: now
       });
       state.editorDraftPoints = [];
@@ -1789,6 +2982,9 @@
           y: Number(p.y.toFixed(2))
         })),
         semantic: currentEditorSemantic(),
+        floor: currentEditorFloor(),
+        linkFloor: "",
+        connectorType: $("editorConnectorType")?.value || "stairs",
         createdAt: now
       });
       state.editorDraftPoints = [];
@@ -1818,7 +3014,7 @@
 
     // saved anchors overlay
     if (state.savedAnchors.length) {
-      state.savedAnchors.forEach((a) => {
+      state.savedAnchors.filter((a) => (a.floor || "1F") === currentEditorFloor()).forEach((a) => {
         const x = CENTER + Number(a.x || 0) * SCALE;
         const y = CENTER + Number(a.y || 0) * SCALE;
         ctx.fillStyle = "#2563eb";
@@ -1830,7 +3026,7 @@
       });
     }
 
-    state.mapElements.slice().reverse().forEach((el) => {
+    state.mapElements.slice().reverse().filter((el) => withLabels ? ((el.floor || currentNavFloor()) === (document.getElementById("editorCanvas") && ctx.canvas.id === "editorCanvas" ? currentEditorFloor() : currentNavFloor())) : true).forEach((el) => {
       const isSelected = el.id === state.selectedMapElementId;
       if (el.type === "point") {
         const x = CENTER + Number(el.x || 0) * SCALE;
@@ -1907,8 +3103,8 @@
         </div>
         ${
           m.type === "point"
-            ? `<div>x: ${m.x} / y: ${m.y}</div>`
-            : `<div>points: ${(m.points || []).map(p => `(${p.x}, ${p.y})`).join(" -> ")}</div>`
+            ? `<div>floor: ${m.floor || "1F"}${m.linkFloor ? ` -> ${m.linkFloor}` : ""}${m.connectorType ? ` / ${m.connectorType}` : ""}</div><div>x: ${m.x} / y: ${m.y}</div>`
+            : `<div>floor: ${m.floor || "1F"}${m.linkFloor ? ` -> ${m.linkFloor}` : ""}${m.connectorType ? ` / ${m.connectorType}` : ""}</div><div>points: ${(m.points || []).map(p => `(${p.x}, ${p.y})`).join(" -> ")}</div>`
         }
         <div class="btns" style="margin-top:10px; margin-bottom:0;">
           <button data-map-select="${m.id}">選取</button>
@@ -1999,6 +3195,9 @@
     if ($("selectedMapElementType")) $("selectedMapElementType").textContent = el ? el.type : "none";
     if ($("selectedMapElementName")) $("selectedMapElementName").value = el ? (el.name || "") : "";
     if ($("selectedMapElementSemantic")) $("selectedMapElementSemantic").value = el ? (el.semantic || "walkable") : "walkable";
+    if ($("selectedMapElementFloor")) $("selectedMapElementFloor").value = el ? (el.floor || "1F") : "1F";
+    if ($("selectedMapElementLinkFloor")) $("selectedMapElementLinkFloor").value = el ? (el.linkFloor || "") : "";
+    if ($("selectedMapElementConnectorType")) $("selectedMapElementConnectorType").value = el ? (el.connectorType || "stairs") : "stairs";
     if (el) {
       setEditorMessage(`已選取元素：${el.name || "未命名"} (${el.type})`);
     }
@@ -2013,8 +3212,14 @@
     }
     const name = $("selectedMapElementName").value.trim() || "未命名";
     const semantic = $("selectedMapElementSemantic").value || "walkable";
+    const floor = $("selectedMapElementFloor").value || "1F";
+    const linkFloor = $("selectedMapElementLinkFloor").value || "";
+    const connectorType = $("selectedMapElementConnectorType").value || "stairs";
     el.name = name;
     el.semantic = semantic;
+    el.floor = floor;
+    el.linkFloor = linkFloor;
+    el.connectorType = connectorType;
     persistMapElements();
     setEditorMessage(`已更新元素名稱：${name}`);
     render();
@@ -2089,7 +3294,8 @@
     } else {
       state.savedAnchors.unshift(anchor);
     }
-    persistSavedAnchors();
+    persistSavedAnchors()
+    markCollabDirty();;
     return true;
   }
 
@@ -2136,6 +3342,7 @@
       name: anchor.name || "未命名校正點",
       x: Number(anchor.x ?? 0),
       y: Number(anchor.y ?? 0),
+      floor: anchor.floor || "1F",
       source: "anchor",
       anchorId: anchor.id || "",
       createdAt: new Date().toISOString()
@@ -2156,6 +3363,7 @@
       existing.y = Number(anchor.y ?? existing.y ?? 0);
       existing.source = "anchor";
       existing.anchorId = anchor.id || existing.anchorId || "";
+      existing.floor = anchor.floor || existing.floor || "1F";
     } else {
       const point = anchorToPointMapElement(anchor);
       if (point) state.mapElements.unshift(point);
@@ -2171,6 +3379,7 @@
       alert("目前沒有可同步的 Anchor。");
       return;
     }
+    maybeCreateAutoSnapshot("同步全部 Anchor 到地圖前");
     state.savedAnchors.forEach((a) => {
       const existing = state.mapElements.find(
         (m) => m.type === "point" && (m.anchorId === a.id || (m.source === "anchor" && m.name === a.name))
@@ -2181,13 +3390,14 @@
         existing.y = Number(a.y ?? existing.y ?? 0);
         existing.source = "anchor";
         existing.anchorId = a.id || existing.anchorId || "";
+        existing.floor = a.floor || existing.floor || "1F";
       } else {
         const point = anchorToPointMapElement(a);
         if (point) state.mapElements.unshift(point);
       }
     });
     persistMapElements();
-    setMessage(`已同步 ${state.savedAnchors.length} 個 Anchor 到地圖。`);
+    addLog("同步 Anchor"); setMessage(`已同步 ${state.savedAnchors.length} 個 Anchor 到地圖。`);
     render();
   }
 
@@ -2219,10 +3429,10 @@
     const nodesMap = new Map();
     const edges = new Map();
 
-    const ensureNode = (p) => {
+    const ensureNode = (p, floor = "1F") => {
       let existing = null;
       for (const node of nodesMap.values()) {
-        if (distanceBetween(node, p) <= state.snapThreshold) {
+        if (node.floor === floor && distanceBetween(node, p) <= state.snapThreshold) {
           existing = node;
           break;
         }
@@ -2232,18 +3442,19 @@
         return existing;
       }
 
-      const key = pointKey(p);
+      const key = `${floor}:${pointKey(p)}`;
       if (!nodesMap.has(key)) {
-        nodesMap.set(key, { x: Number(p.x), y: Number(p.y), key });
+        nodesMap.set(key, { x: Number(p.x), y: Number(p.y), floor, key });
       }
       if (!edges.has(key)) edges.set(key, []);
       return nodesMap.get(key);
     };
 
     networkLineElements().forEach((line) => {
+      const floor = line.floor || "1F";
       for (let i = 1; i < line.points.length; i++) {
-        const a = ensureNode(line.points[i - 1]);
-        const b = ensureNode(line.points[i]);
+        const a = ensureNode(line.points[i - 1], floor);
+        const b = ensureNode(line.points[i], floor);
         const w = distanceBetween(a, b);
         if (!segmentBlockedByWalls(a, b) && !pointInsideRestrictedArea(a) && !pointInsideRestrictedArea(b)) {
           edges.get(a.key).push({ to: b.key, weight: w });
@@ -2251,6 +3462,19 @@
         }
       }
     });
+
+    // connector points as vertical transitions
+    state.mapElements
+      .filter((m) => m.type === "point" && (m.semantic || "walkable") === "connector" && m.linkFloor)
+      .forEach((p) => {
+        const a = ensureNode({ x: Number(p.x || 0), y: Number(p.y || 0) }, p.floor || "1F");
+        const b = ensureNode({ x: Number(p.x || 0), y: Number(p.y || 0) }, p.linkFloor);
+        const w = connectorPenalty(p.connectorType || "stairs", state.routePreference) + floorDistancePenalty(a.floor, b.floor);
+        if (w < 9999) {
+          edges.get(a.key).push({ to: b.key, weight: w });
+          edges.get(b.key).push({ to: a.key, weight: w });
+        }
+      });
 
     return { nodes: Array.from(nodesMap.values()), edges, nodesMap };
   }
@@ -2321,6 +3545,7 @@
   function computeNetworkRoute() {
     const target = state.savedAnchors.find(a => a.id === state.navTargetId);
     const current = latestPose();
+    const currentFloor = currentNavFloor();
     if (!target) {
       state.plannedRoutePoints = [];
       return [];
@@ -2335,30 +3560,31 @@
       return state.plannedRoutePoints;
     }
 
-    const startNode = nearestGraphNode({ x: Number(current.x || 0), y: Number(current.y || 0) }, graph.nodes);
-    const goalNode = nearestGraphNode({ x: Number(target.x || 0), y: Number(target.y || 0) }, graph.nodes);
+    const startNode = nearestGraphNode({ x: Number(current.x || 0), y: Number(current.y || 0), floor: currentFloor }, graph.nodes.filter(n => n.floor === currentFloor));
+    const goalFloor = target.floor || currentFloor;
+    const goalNode = nearestGraphNode({ x: Number(target.x || 0), y: Number(target.y || 0), floor: goalFloor }, graph.nodes.filter(n => n.floor === goalFloor));
     const path = shortestPathOnGraph(startNode, goalNode, graph);
 
     const route = [];
-    route.push({ x: Number(current.x || 0), y: Number(current.y || 0), name: "目前位置" });
+    route.push({ x: Number(current.x || 0), y: Number(current.y || 0), name: `目前位置 (${currentFloor})`, floor: currentFloor });
 
     if (startNode && distanceBetween(current, startNode) > 0.1) {
-      route.push({ x: startNode.x, y: startNode.y, name: "起始線段點" });
+      route.push({ x: startNode.x, y: startNode.y, name: `起始線段點 (${startNode.floor})`, floor: startNode.floor });
     }
 
     path.forEach((p, idx) => {
       if (idx === 0 && startNode && p.key === startNode.key) return;
       if (goalNode && idx === path.length - 1 && p.key === goalNode.key) {
-        route.push({ x: p.x, y: p.y, name: "目標線段點" });
+        route.push({ x: p.x, y: p.y, name: `目標線段點 (${p.floor || goalFloor})`, floor: p.floor || goalFloor });
       } else {
-        route.push({ x: p.x, y: p.y, name: `路網點 ${idx + 1}` });
+        route.push({ x: p.x, y: p.y, name: `路網點 ${idx + 1} (${p.floor || currentFloor})`, floor: p.floor || currentFloor });
       }
     });
 
     if (!goalNode || distanceBetween(target, goalNode) > 0.1) {
-      route.push({ x: Number(target.x || 0), y: Number(target.y || 0), name: target.name || "目標" });
+      route.push({ x: Number(target.x || 0), y: Number(target.y || 0), name: `${target.name || "目標"} (${goalFloor})`, floor: goalFloor });
     } else {
-      route.push({ x: Number(target.x || 0), y: Number(target.y || 0), name: target.name || "目標" });
+      route.push({ x: Number(target.x || 0), y: Number(target.y || 0), name: `${target.name || "目標"} (${goalFloor})`, floor: goalFloor });
     }
 
     // dedupe adjacent identical
@@ -2556,20 +3782,2700 @@
   }
 
 
+
+  function currentEditorFloor() {
+    return $("editorFloorSelect")?.value || "1F";
+  }
+
+  function currentAnchorFloor() {
+    return $("anchorFloorSelect")?.value || "1F";
+  }
+
+  function currentNavFloor() {
+    return $("navCurrentFloorSelect")?.value || state.currentFloor || "1F";
+  }
+
+  function floorRank(f) {
+    const map = { "B3": -3, "B2": -2, "B1": -1, "1F": 1, "2F": 2, "3F": 3, "4F": 4, "5F": 5 };
+    return map[f] ?? 0;
+  }
+
+  function floorDistancePenalty(aFloor, bFloor) {
+    return Math.abs(floorRank(aFloor) - floorRank(bFloor)) * 8;
+  }
+
+  function visibleOnCurrentFloor(el) {
+    const floor = currentNavFloor();
+    return !el.floor || el.floor === floor;
+  }
+
+
+
+  function currentRoutePreference() {
+    return $("routePreferenceSelect")?.value || state.routePreference || "normal";
+  }
+
+  function connectorPenalty(type, preference) {
+    const t = type || "stairs";
+    const pref = preference || state.routePreference || "normal";
+
+    if (pref === "normal") {
+      if (t === "elevator") return 10;
+      if (t === "stairs") return 8;
+      if (t === "ramp") return 9;
+      return 8;
+    }
+    if (pref === "elevator") {
+      if (t === "elevator") return 5;
+      if (t === "stairs") return 18;
+      if (t === "ramp") return 9;
+      return 12;
+    }
+    if (pref === "stairs") {
+      if (t === "stairs") return 5;
+      if (t === "elevator") return 18;
+      if (t === "ramp") return 9;
+      return 12;
+    }
+    if (pref === "accessible") {
+      if (t === "ramp") return 5;
+      if (t === "elevator") return 7;
+      if (t === "stairs") return 9999;
+      return 12;
+    }
+    return 8;
+  }
+
+  function routePreferenceLabel(pref) {
+    return pref === "elevator" ? "電梯優先" :
+           pref === "stairs" ? "樓梯優先" :
+           pref === "accessible" ? "無障礙" : "一般";
+  }
+
+
+
+  function buildProjectPayload() {
+    return {
+      exportedAt: new Date().toISOString(),
+      version: 1,
+      projectType: "indoor-navigation-toolbox",
+      settings: {
+        currentFloor: state.currentFloor,
+        routePreference: state.routePreference,
+        showAnchorOverlay: state.showAnchorOverlay,
+        showMapOverlay: state.showMapOverlay,
+        voiceGuideEnabled: state.voiceGuideEnabled,
+        snapEnabled: state.snapEnabled,
+        autoIntersectEnabled: state.autoIntersectEnabled,
+        arrivalThreshold: state.arrivalThreshold,
+        averageWalkingSpeed: state.averageWalkingSpeed,
+        stepLength: state.stepLength,
+        autoSnapshotEnabled: state.autoSnapshotEnabled,
+        appRole: state.appRole,
+        adminUnlocked: state.adminUnlocked,
+        testerEnabled: state.appRole === "tester",
+        teamMode: state.teamMode,
+        selectedLeaderId: state.selectedLeaderId,
+        liveUserName: state.liveUserName,
+        teamWarnDistance: state.teamWarnDistance,
+        meetingPointId: state.meetingPointId,
+        missionPointIds: state.missionPointIds,
+        missionArrivalThreshold: state.missionArrivalThreshold
+      },
+      anchors: state.savedAnchors,
+      mapElements: state.mapElements,
+      navHistory: state.navHistory,
+      missionReports: state.missionReports,
+      acceptanceRecords: state.acceptanceRecords,
+      branding: state.branding,
+      demo: {
+        loaded: state.demoLoaded,
+        status: state.demoStatus
+      }
+    };
+  }
+
+  function exportProjectData() {
+    const payload = buildProjectPayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `indoor-project-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setMessage("已匯出整個專案檔。"); addLog("匯出專案");
+  }
+
+  async function importProjectData(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      const anchors = Array.isArray(data.anchors) ? data.anchors : [];
+      const mapElements = Array.isArray(data.mapElements) ? data.mapElements : [];
+      const navHistory = Array.isArray(data.navHistory) ? data.navHistory : [];
+      const missionReports = Array.isArray(data.missionReports) ? data.missionReports : [];
+      const acceptanceRecords = Array.isArray(data.acceptanceRecords) ? data.acceptanceRecords : [];
+      const settings = data.settings || {};
+      if (data.branding && typeof data.branding === "object") state.branding = { ...state.branding, ...data.branding };
+      if (data.demo && typeof data.demo === "object") {
+        state.demoLoaded = !!data.demo.loaded;
+        state.demoStatus = data.demo.status || state.demoStatus;
+      }
+
+      maybeCreateAutoSnapshot("匯入專案前");
+      state.savedAnchors = anchors;
+      state.mapElements = mapElements;
+      state.navHistory = navHistory;
+      state.missionReports = missionReports;
+      state.acceptanceRecords = acceptanceRecords;
+
+      if (settings.currentFloor) state.currentFloor = settings.currentFloor;
+      if (settings.routePreference) state.routePreference = settings.routePreference;
+      if (typeof settings.showAnchorOverlay === "boolean") state.showAnchorOverlay = settings.showAnchorOverlay;
+      if (typeof settings.showMapOverlay === "boolean") state.showMapOverlay = settings.showMapOverlay;
+      if (typeof settings.voiceGuideEnabled === "boolean") state.voiceGuideEnabled = settings.voiceGuideEnabled;
+      if (typeof settings.snapEnabled === "boolean") state.snapEnabled = settings.snapEnabled;
+      if (typeof settings.autoIntersectEnabled === "boolean") state.autoIntersectEnabled = settings.autoIntersectEnabled;
+      if (Number.isFinite(Number(settings.arrivalThreshold))) state.arrivalThreshold = Number(settings.arrivalThreshold);
+      if (Number.isFinite(Number(settings.averageWalkingSpeed))) state.averageWalkingSpeed = Number(settings.averageWalkingSpeed);
+      if (Number.isFinite(Number(settings.stepLength))) state.stepLength = Number(settings.stepLength);
+      if (typeof settings.autoSnapshotEnabled === "boolean") state.autoSnapshotEnabled = settings.autoSnapshotEnabled;
+      if (settings.appRole) state.appRole = settings.appRole;
+      if (typeof settings.adminUnlocked === "boolean") state.adminUnlocked = settings.adminUnlocked;
+      if (settings.teamMode) state.teamMode = settings.teamMode;
+      if (typeof settings.selectedLeaderId === "string") state.selectedLeaderId = settings.selectedLeaderId;
+      if (typeof settings.liveUserName === "string") state.liveUserName = settings.liveUserName;
+      if (Number.isFinite(Number(settings.teamWarnDistance))) state.teamWarnDistance = Number(settings.teamWarnDistance);
+      if (typeof settings.meetingPointId === "string") state.meetingPointId = settings.meetingPointId;
+      if (Array.isArray(settings.missionPointIds)) state.missionPointIds = settings.missionPointIds;
+      if (Number.isFinite(Number(settings.missionArrivalThreshold))) state.missionArrivalThreshold = Number(settings.missionArrivalThreshold);
+
+      localStorage.setItem("indoor_saved_anchors", JSON.stringify(state.savedAnchors));
+      localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
+      localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
+      localStorage.setItem("indoor_mission_reports", JSON.stringify(state.missionReports));
+      localStorage.setItem("indoor_acceptance_records", JSON.stringify(state.acceptanceRecords));
+
+      renderSavedAnchors();
+      renderMapElements();
+      renderNavHistory();
+      render();
+      addLog("匯入專案"); setMessage(`已匯入專案檔：${anchors.length} 個 Anchor、${mapElements.length} 個地圖元素、${navHistory.length} 筆導航歷史。`);
+    } catch (e) {
+      alert("匯入專案失敗：" + e.message);
+    }
+  }
+
+
+
+  function snapshotStoragePayload(label = "") {
+    return {
+      id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
+      createdAt: new Date().toISOString(),
+      label: label || `快照 ${new Date().toLocaleString()}`,
+      project: buildProjectPayload()
+    };
+  }
+
+  function loadSnapshots() {
+    try {
+      const raw = localStorage.getItem("indoor_project_snapshots");
+      state.snapshots = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(state.snapshots)) state.snapshots = [];
+    } catch (e) {
+      state.snapshots = [];
+    }
+    renderSnapshots();
+  }
+
+  function persistSnapshots()
+    markCollabDirty(); {
+    localStorage.setItem("indoor_project_snapshots", JSON.stringify(state.snapshots));
+    renderSnapshots();
+  }
+
+  function createSnapshot(customLabel = "") {
+    const label = customLabel || prompt("輸入這次快照名稱", `快照 ${new Date().toLocaleString()}`) || "";
+    const snap = snapshotStoragePayload(label.trim());
+    state.snapshots.unshift(snap);
+    if (state.snapshots.length > 30) {
+      state.snapshots = state.snapshots.slice(0, 30);
+    }
+    persistSnapshots();
+    addLog("建立快照"); setMessage(`已建立快照：${snap.label}`);
+  }
+
+  function restoreSnapshot(snapshotId) {
+    const snap = state.snapshots.find(s => s.id === snapshotId);
+    if (!snap) return;
+    if (!confirm(`要復原到「${snap.label}」嗎？目前資料會被覆蓋。`)) return;
+    maybeCreateAutoSnapshot(`復原前 / ${snap.label}`);
+    const data = snap.project || {};
+    const anchors = Array.isArray(data.anchors) ? data.anchors : [];
+    const mapElements = Array.isArray(data.mapElements) ? data.mapElements : [];
+    const navHistory = Array.isArray(data.navHistory) ? data.navHistory : [];
+    const settings = data.settings || {};
+
+    state.savedAnchors = anchors;
+    state.mapElements = mapElements;
+    state.navHistory = navHistory;
+
+    if (settings.currentFloor) state.currentFloor = settings.currentFloor;
+    if (settings.routePreference) state.routePreference = settings.routePreference;
+    if (typeof settings.showAnchorOverlay === "boolean") state.showAnchorOverlay = settings.showAnchorOverlay;
+    if (typeof settings.showMapOverlay === "boolean") state.showMapOverlay = settings.showMapOverlay;
+    if (typeof settings.voiceGuideEnabled === "boolean") state.voiceGuideEnabled = settings.voiceGuideEnabled;
+    if (typeof settings.snapEnabled === "boolean") state.snapEnabled = settings.snapEnabled;
+    if (typeof settings.autoIntersectEnabled === "boolean") state.autoIntersectEnabled = settings.autoIntersectEnabled;
+    if (Number.isFinite(Number(settings.arrivalThreshold))) state.arrivalThreshold = Number(settings.arrivalThreshold);
+    if (Number.isFinite(Number(settings.averageWalkingSpeed))) state.averageWalkingSpeed = Number(settings.averageWalkingSpeed);
+    if (Number.isFinite(Number(settings.stepLength))) state.stepLength = Number(settings.stepLength);
+
+    localStorage.setItem("indoor_saved_anchors", JSON.stringify(state.savedAnchors));
+    localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
+    localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
+
+    renderSavedAnchors();
+    renderMapElements();
+    renderNavHistory();
+    render();
+    addLog("復原快照"); setMessage(`已復原快照：${snap.label}`);
+  }
+
+  function deleteSnapshot(snapshotId) {
+    state.snapshots = state.snapshots.filter(s => s.id !== snapshotId);
+    persistSnapshots();
+  }
+
+  function renderSnapshots() {
+    const el = $("snapshotList");
+    if (!el) return;
+    if (!state.snapshots.length) {
+      el.innerHTML = '<div class="item">尚無快照。</div>';
+      return;
+    }
+    el.innerHTML = state.snapshots.map((s) => `
+      <div class="item">
+        <div class="item-top">
+          <strong>${s.label || "未命名快照"}</strong>
+          <span class="badge">${new Date(s.createdAt).toLocaleString()}</span>
+        </div>
+        <div>anchors: ${Array.isArray(s.project?.anchors) ? s.project.anchors.length : 0}</div>
+        <div>mapElements: ${Array.isArray(s.project?.mapElements) ? s.project.mapElements.length : 0}</div>
+        <div>navHistory: ${Array.isArray(s.project?.navHistory) ? s.project.navHistory.length : 0}</div>
+        <div class="btns" style="margin-top:10px; margin-bottom:0;">
+          <button data-snapshot-restore="${s.id}">復原</button>
+          <button data-snapshot-export="${s.id}">匯出單筆</button>
+          <button data-snapshot-delete="${s.id}" class="danger">刪除</button>
+        </div>
+      </div>
+    `).join("");
+
+    el.querySelectorAll("[data-snapshot-restore]").forEach(btn => {
+      btn.addEventListener("click", () => restoreSnapshot(btn.getAttribute("data-snapshot-restore")));
+    });
+    el.querySelectorAll("[data-snapshot-delete]").forEach(btn => {
+      btn.addEventListener("click", () => deleteSnapshot(btn.getAttribute("data-snapshot-delete")));
+    });
+    el.querySelectorAll("[data-snapshot-export]").forEach(btn => {
+      btn.addEventListener("click", () => exportSingleSnapshot(btn.getAttribute("data-snapshot-export")));
+    });
+  }
+
+  function openSnapshotModal() {
+    $("snapshotModal").style.display = "flex";
+    renderSnapshots();
+  }
+
+  function closeSnapshotModal() {
+    $("snapshotModal").style.display = "none";
+  }
+
+  function exportSingleSnapshot(snapshotId) {
+    const snap = state.snapshots.find(s => s.id === snapshotId);
+    if (!snap) return;
+    const blob = new Blob([JSON.stringify(snap, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `indoor-snapshot-${snapshotId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportSnapshots() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      version: 1,
+      snapshots: state.snapshots
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `indoor-snapshots-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function importSnapshots(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const incoming = Array.isArray(data) ? data : data.snapshots;
+      if (!Array.isArray(incoming)) throw new Error("JSON 裡找不到 snapshots 陣列");
+      state.snapshots = incoming.concat(state.snapshots).slice(0, 50);
+      persistSnapshots();
+      setMessage(`已匯入 ${incoming.length} 筆快照。`);
+    } catch (e) {
+      alert("匯入快照失敗：" + e.message);
+    }
+  }
+
+
+
+  function maybeCreateAutoSnapshot(reason = "") {
+    if (!state.autoSnapshotEnabled) return;
+    const label = reason ? `自動快照：${reason} / ${new Date().toLocaleString()}` : `自動快照 ${new Date().toLocaleString()}`;
+    const snap = snapshotStoragePayload(label);
+    state.snapshots.unshift(snap);
+    if (state.snapshots.length > 50) {
+      state.snapshots = state.snapshots.slice(0, 50);
+    }
+    persistSnapshots();
+  }
+
+
+
+  function addLog(action, detail = "") {
+    markCollabDirty();
+    const entry = {
+      id: Date.now(),
+      time: new Date().toLocaleString(),
+      action,
+      detail
+    };
+    state.logs.unshift(entry);
+    if (state.logs.length > 200) state.logs = state.logs.slice(0, 200);
+    localStorage.setItem("indoor_logs", JSON.stringify(state.logs));
+    renderLogs();
+  }
+
+  function loadLogs() {
+    try {
+      const raw = localStorage.getItem("indoor_logs");
+      state.logs = raw ? JSON.parse(raw) : [];
+    } catch {
+      state.logs = [];
+    }
+    renderLogs();
+  }
+
+  function renderLogs() {
+    const el = $("logList");
+    if (!el) return;
+    if (!state.logs.length) {
+      el.innerHTML = '<div class="item">尚無紀錄</div>';
+      return;
+    }
+    el.innerHTML = state.logs.map(l => `
+      <div class="item">
+        <div><strong>${l.action}</strong></div>
+        <div>${l.detail || ""}</div>
+        <div class="subtle">${l.time}</div>
+      </div>
+    `).join("");
+  }
+
+  function openLogModal() {
+    $("logModal").style.display = "flex";
+    renderLogs();
+  }
+
+  function closeLogModal() {
+    $("logModal").style.display = "none";
+  }
+
+
+
+  function buildRealtimeSyncPayload() {
+    return {
+      updatedAt: Date.now(),
+      anchors: state.savedAnchors,
+      mapElements: state.mapElements,
+      navHistory: state.navHistory,
+      branding: state.branding,
+      demo: {
+        loaded: state.demoLoaded,
+        status: state.demoStatus
+      },
+      snapshots: state.snapshots,
+      logs: state.logs,
+      settings: {
+        currentFloor: state.currentFloor,
+        routePreference: state.routePreference,
+        showAnchorOverlay: state.showAnchorOverlay,
+        showMapOverlay: state.showMapOverlay,
+        voiceGuideEnabled: state.voiceGuideEnabled,
+        snapEnabled: state.snapEnabled,
+        autoIntersectEnabled: state.autoIntersectEnabled,
+        arrivalThreshold: state.arrivalThreshold,
+        averageWalkingSpeed: state.averageWalkingSpeed,
+        stepLength: state.stepLength,
+        autoSnapshotEnabled: state.autoSnapshotEnabled,
+        appRole: state.appRole,
+        adminUnlocked: state.adminUnlocked
+      }
+    };
+  }
+
+  function applyRealtimeSyncPayload(data) {
+    if (!data || typeof data !== "object") return;
+    if ((data.updatedAt || 0) <= state.lastRemoteTs) return;
+
+    state.applyingRemote = true;
+    state.lastRemoteTs = data.updatedAt || Date.now();
+
+    state.savedAnchors = Array.isArray(data.anchors) ? data.anchors : [];
+    state.mapElements = Array.isArray(data.mapElements) ? data.mapElements : [];
+    state.navHistory = Array.isArray(data.navHistory) ? data.navHistory : [];
+    state.snapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
+    state.logs = Array.isArray(data.logs) ? data.logs : [];
+
+    const settings = data.settings || {};
+    if (settings.currentFloor) state.currentFloor = settings.currentFloor;
+    if (settings.routePreference) state.routePreference = settings.routePreference;
+    if (typeof settings.showAnchorOverlay === "boolean") state.showAnchorOverlay = settings.showAnchorOverlay;
+    if (typeof settings.showMapOverlay === "boolean") state.showMapOverlay = settings.showMapOverlay;
+    if (typeof settings.voiceGuideEnabled === "boolean") state.voiceGuideEnabled = settings.voiceGuideEnabled;
+    if (typeof settings.snapEnabled === "boolean") state.snapEnabled = settings.snapEnabled;
+    if (typeof settings.autoIntersectEnabled === "boolean") state.autoIntersectEnabled = settings.autoIntersectEnabled;
+    if (typeof settings.autoSnapshotEnabled === "boolean") state.autoSnapshotEnabled = settings.autoSnapshotEnabled;
+    if (Number.isFinite(Number(settings.arrivalThreshold))) state.arrivalThreshold = Number(settings.arrivalThreshold);
+    if (Number.isFinite(Number(settings.averageWalkingSpeed))) state.averageWalkingSpeed = Number(settings.averageWalkingSpeed);
+    if (Number.isFinite(Number(settings.stepLength))) state.stepLength = Number(settings.stepLength);
+
+    localStorage.setItem("indoor_saved_anchors", JSON.stringify(state.savedAnchors));
+    localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
+    localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
+    localStorage.setItem("indoor_project_snapshots", JSON.stringify(state.snapshots));
+    localStorage.setItem("indoor_logs", JSON.stringify(state.logs));
+
+    renderSavedAnchors();
+    renderMapElements();
+    renderNavHistory();
+    renderSnapshots();
+    renderLogs();
+    render();
+    state.applyingRemote = false;
+    setMessage("已套用遠端同步資料。");
+  }
+
+  function markCollabDirty() {
+    if (state.applyingRemote) return;
+    state.collabDirty = true;
+  }
+
+  function saveCollabSettings() {
+    state.collabRoomId = $("collabRoomId").value.trim();
+    state.collabConfigText = $("collabConfigText").value.trim();
+    localStorage.setItem("indoor_collab_room", state.collabRoomId);
+    localStorage.setItem("indoor_collab_config", state.collabConfigText);
+    setMessage("已儲存協作設定。");
+  }
+
+  function loadCollabSettings() {
+    state.collabRoomId = localStorage.getItem("indoor_collab_room") || "";
+    state.collabConfigText = localStorage.getItem("indoor_collab_config") || "";
+  }
+
+  function openCollabModal() {
+    $("collabModal").style.display = "flex";
+    $("collabRoomId").value = state.collabRoomId || "";
+    $("collabConfigText").value = state.collabConfigText || "";
+    updateCollabStatusUI();
+  }
+
+  function closeCollabModal() {
+    $("collabModal").style.display = "none";
+  }
+
+  function updateCollabStatusUI() {
+    if ($("collabStatusBadge")) $("collabStatusBadge").textContent = state.collabStatus;
+  }
+
+  async function connectCollab() {
+    try {
+      saveCollabSettings();
+      if (!state.collabRoomId || !state.collabConfigText) {
+        alert("請先填 Firebase config 與 Room ID。");
+        return;
+      }
+
+      state.collabStatus = "connecting";
+      updateCollabStatusUI();
+      render();
+
+      const config = JSON.parse(state.collabConfigText);
+
+      const [{ initializeApp }, firestoreMod] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+      ]);
+
+      const {
+        getFirestore,
+        doc,
+        onSnapshot,
+        setDoc,
+        serverTimestamp,
+        collection
+      } = firestoreMod;
+
+      if (state.collabUnsub) {
+        state.collabUnsub();
+        state.collabUnsub = null;
+      }
+
+      const app = initializeApp(config, "indoor-collab-" + Date.now());
+      const db = getFirestore(app);
+      state.collabDb = {
+        db,
+        doc,
+        onSnapshot,
+        onSnapshotCollection: onSnapshot,
+        setDoc,
+        serverTimestamp,
+        collection,
+        roomDoc: doc(db, "indoorRooms", state.collabRoomId)
+      };
+
+      state.collabUnsub = onSnapshot(state.collabDb.roomDoc, (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        applyRealtimeSyncPayload(data.payload || data);
+      });
+
+      state.collabStatus = "connected";
+      updateCollabStatusUI();
+      setMessage(`已連線到協作 room：${state.collabRoomId}`);
+      markCollabDirty();
+      addLog("連線協作", state.collabRoomId);
+      render();
+    } catch (e) {
+      state.collabStatus = "error";
+      updateCollabStatusUI();
+      alert("協作連線失敗：" + e.message);
+    }
+  }
+
+  function disconnectCollab() {
+    if (state.collabUnsub) {
+      state.collabUnsub();
+      state.collabUnsub = null;
+    }
+    if (state.liveUsersUnsub) {
+      state.liveUsersUnsub();
+      state.liveUsersUnsub = null;
+    }
+    if (state.liveUpdateTimer) {
+      clearInterval(state.liveUpdateTimer);
+      state.liveUpdateTimer = null;
+    }
+    state.liveUsers = {};
+    state.liveTrackingEnabled = false;
+    state.collabDb = null;
+    state.collabStatus = "idle";
+    updateCollabStatusUI();
+    setMessage("已中斷協作同步。");
+    addLog("中斷協作");
+    render();
+  }
+
+  async function flushCollabSync() {
+    if (!state.collabDb || !state.collabDirty) return;
+    try {
+      state.collabDirty = false;
+      state.lastPushedTs = Date.now();
+      const payload = buildRealtimeSyncPayload();
+      await state.collabDb.setDoc(state.collabDb.roomDoc, {
+        payload,
+        updatedAt: state.collabDb.serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      state.collabDirty = true;
+      console.error(e);
+    }
+  }
+
+
+
+  function loadAppRole() {
+    state.appRole = localStorage.getItem("indoor_app_role") || "admin";
+  }
+
+  function setAppRole(role) {
+    if (role === "admin" && !state.adminUnlocked) {
+      state.appRole = "user";
+      localStorage.setItem("indoor_app_role", "user");
+      render();
+      setMessage("請先完成登入管理員後再切換到管理員模式。");
+      openAuthModal();
+      return;
+    }
+    state.appRole = role === "user" ? "user" : "admin";
+    localStorage.setItem("indoor_app_role", state.appRole);
+    render();
+    setMessage(state.appRole === "user" ? "已切換為使用者模式。" : "已切換為管理員模式。");
+  }
+
+  function applyRoleVisibility() {
+    const isUser = state.appRole === "user";
+    const isTester = state.appRole === "tester";
+
+    // topbar/admin functions
+    ["btnExportProject","btnImportProject","btnCreateSnapshot","btnOpenSnapshots","btnOpenLog","btnOpenCollab","toggleAutoSnapshot","btnOpenBranding","btnExportRelease"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        const hiddenForUser = true;
+        const hiddenForTester = false;
+        if (id === "toggleAutoSnapshot") {
+          const wrap = el.closest("label");
+          if (wrap) wrap.style.display = isUser ? "none" : "";
+          if (wrap && !isUser) wrap.style.display = "";
+        } else {
+          el.style.display = isUser ? "none" : (isTester && hiddenForTester ? "none" : "");
+        }
+      }
+    });
+
+    document.querySelectorAll(".tabbtn").forEach((btn) => {
+      const page = btn.getAttribute("data-page");
+      const testerVisiblePages = ["homePage","navPage","setupPage","dashboardPage","acceptancePage","qrPage","mapEditorPage"];
+      if (["qrPage", "mapEditorPage", "setupPage", "dashboardPage", "acceptancePage"].includes(page)) {
+        if (isUser) btn.style.display = "none";
+        else if (isTester) btn.style.display = testerVisiblePages.includes(page) ? "" : "";
+        else btn.style.display = "";
+      } else {
+        btn.style.display = "";
+      }
+    });
+
+    ["btnExport","btnStepCal","btnQrCal","btnReset","btnAnchor"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isUser ? "none" : "";
+    });
+
+    const roleBanner = document.getElementById("roleModeBanner");
+    if (roleBanner) roleBanner.style.display = isUser ? "" : "none";
+    const testerBanner = document.getElementById("testerModeBanner");
+    if (testerBanner) testerBanner.style.display = isTester ? "" : "none";
+
+    if (isUser) {
+      const activeHidden = document.querySelector('.page.active#qrPage, .page.active#mapEditorPage, .page.active#setupPage, .page.active#dashboardPage, .page.active#acceptancePage');
+      if (activeHidden) switchPage("navPage");
+    }
+  }
+
+
+
+  function loadAuthState() {
+    state.adminUnlocked = localStorage.getItem("indoor_admin_unlocked") === "true";
+    const savedRole = localStorage.getItem("indoor_app_role") || "admin";
+    if (!state.adminUnlocked && savedRole === "admin") {
+      state.appRole = "user";
+    } else if (savedRole === "tester") {
+      state.appRole = "tester";
+    }
+  }
+
+  function openAuthModal() {
+    $("authModal").style.display = "flex";
+    updateAuthStatusUI();
+  }
+
+  function closeAuthModal() {
+    $("authModal").style.display = "none";
+  }
+
+  function updateAuthStatusUI() {
+    const banner = $("authStatusBanner");
+    if (!banner) return;
+    const firebasePart = state.firebaseAuthStatus === "signed-in"
+      ? `Firebase：已登入 ${state.firebaseUserEmail || ""}`
+      : "Firebase：未登入";
+    banner.textContent = state.adminUnlocked
+      ? `管理員已解鎖。${firebasePart}`
+      : `尚未登入管理員。${firebasePart}`;
+  }
+
+  function getStoredAdminPassword() {
+    return localStorage.getItem("indoor_admin_password") || "";
+  }
+
+  function setAdminPassword() {
+    const current = getStoredAdminPassword();
+    const pwd = prompt(current ? "輸入新的管理員密碼" : "設定管理員密碼", "");
+    if (!pwd) return;
+    localStorage.setItem("indoor_admin_password", pwd);
+    addLog("設定管理員密碼");
+    setMessage("已更新管理員密碼。");
+  }
+
+  function unlockAdminWithPassword() {
+    const stored = getStoredAdminPassword();
+    if (!stored) {
+      alert("請先設定管理員密碼。");
+      return;
+    }
+    const entered = $("adminPasswordInput").value;
+    if (entered !== stored) {
+      alert("密碼錯誤。");
+      addLog("登入管理員失敗", "本地密碼錯誤");
+      return;
+    }
+    state.adminUnlocked = true;
+    state.appRole = "admin";
+    localStorage.setItem("indoor_admin_unlocked", "true");
+    localStorage.setItem("indoor_app_role", "admin");
+    addLog("登入管理員成功", "本地密碼");
+    setMessage("已解鎖管理員模式。");
+    render();
+    updateAuthStatusUI();
+  }
+
+  function lockAdminMode() {
+    state.adminUnlocked = false;
+    state.appRole = "user";
+    localStorage.setItem("indoor_admin_unlocked", "false");
+    localStorage.setItem("indoor_app_role", "user");
+    addLog("鎖定管理員模式");
+    setMessage("已鎖定回使用者模式。");
+    render();
+    updateAuthStatusUI();
+  }
+
+  async function firebaseLogin() {
+    try {
+      const email = $("authEmailInput").value.trim();
+      const password = $("authPasswordInput").value;
+      if (!email || !password) {
+        alert("請輸入 Email 與 Password。");
+        return;
+      }
+      if (!state.collabConfigText) {
+        alert("請先在協作同步填好 Firebase Web config，或先打開協作同步並儲存設定。");
+        return;
+      }
+      const config = JSON.parse(state.collabConfigText);
+
+      const [{ initializeApp }, authMod] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
+      ]);
+
+      const { getAuth, signInWithEmailAndPassword } = authMod;
+      const app = initializeApp(config, "indoor-auth-" + Date.now());
+      const auth = getAuth(app);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+
+      state.firebaseAuthStatus = "signed-in";
+      state.firebaseUserEmail = cred.user?.email || email;
+      state.adminUnlocked = true;
+      state.appRole = "admin";
+      localStorage.setItem("indoor_admin_unlocked", "true");
+      localStorage.setItem("indoor_app_role", "admin");
+      addLog("Firebase 登入管理員成功", state.firebaseUserEmail);
+      setMessage(`已用 Firebase 登入管理員：${state.firebaseUserEmail}`);
+      render();
+      updateAuthStatusUI();
+    } catch (e) {
+      state.firebaseAuthStatus = "error";
+      addLog("Firebase 登入管理員失敗", e.message);
+      updateAuthStatusUI();
+      alert("Firebase 登入失敗：" + e.message);
+    }
+  }
+
+  function firebaseLogout() {
+    state.firebaseAuthStatus = "idle";
+    state.firebaseUserEmail = "";
+    state.adminUnlocked = false;
+    state.appRole = "user";
+    localStorage.setItem("indoor_admin_unlocked", "false");
+    localStorage.setItem("indoor_app_role", "user");
+    addLog("Firebase 管理員登出");
+    setMessage("已登出管理員並切回使用者模式。");
+    render();
+    updateAuthStatusUI();
+  }
+
+
+
+  function renderHomeSummary() {
+    if ($("homeUserModeText")) $("homeUserModeText").textContent = state.appRole === "user" ? "使用者" : (state.appRole === "tester" ? "測試者" : "管理員");
+    if ($("homeTesterModeText")) $("homeTesterModeText").textContent = state.appRole === "tester" ? "測試者" : "待切換";
+    if ($("homeAdminStatusText")) $("homeAdminStatusText").textContent = state.adminUnlocked ? "已解鎖" : "未解鎖";
+    if ($("homeAnchorCount")) $("homeAnchorCount").textContent = String(state.savedAnchors.length);
+    if ($("homeMapCount")) $("homeMapCount").textContent = String(state.mapElements.length);
+    if ($("homeNavHistoryCount")) $("homeNavHistoryCount").textContent = String(state.navHistory.length);
+    if ($("homeSnapshotCount")) $("homeSnapshotCount").textContent = String(state.snapshots.length);
+  }
+
+
+  function enterTesterModeFromHome() {
+    state.appRole = "tester";
+    localStorage.setItem("indoor_app_role", "tester");
+    switchPage("navPage");
+    render();
+    setMessage("已進入測試者模式。");
+  }
+
+
+  function enterUserModeFromHome() {
+    state.appRole = "user";
+    localStorage.setItem("indoor_app_role", "user");
+    switchPage("navPage");
+    render();
+    setMessage("已開始導航。");
+  }
+
+  function enterAdminModeFromHome() {
+    if (!state.adminUnlocked) {
+      openAuthModal();
+      setMessage("請先完成登入管理員。");
+      return;
+    }
+    state.appRole = "admin";
+    localStorage.setItem("indoor_app_role", "admin");
+    switchPage("navPage");
+    render();
+    setMessage("已進入管理後台。");
+  }
+
+
+
+  function loadBranding() {
+    try {
+      const raw = localStorage.getItem("indoor_branding");
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data && typeof data === "object") {
+        state.branding = { ...state.branding, ...data };
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function persistBranding() {
+    localStorage.setItem("indoor_branding", JSON.stringify(state.branding));
+  }
+
+  function applyBrandingToUI() {
+    document.title = `${state.branding.name} - ${state.branding.subtitle}`;
+    document.documentElement.style.setProperty("--brand-primary", state.branding.primaryColor || "#2563eb");
+    document.documentElement.style.setProperty("--brand-accent", state.branding.accentColor || "#8b5cf6");
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+
+    setText("brandTopName", state.branding.name);
+    setText("brandTopSubtitle", state.branding.subtitle);
+    setText("heroCompanyBadge", `${state.branding.company} · Indoor Navigation Prototype`);
+    setText("heroSlogan", state.branding.slogan);
+    setText("heroDescription", state.branding.description);
+    setText("footerBrandName", state.branding.name);
+    setText("footerBrandSubtitle", `${state.branding.subtitle} · demo-ready UI · role-based workflow`);
+
+    // preview
+    setText("brandingPreviewCompany", state.branding.company);
+    setText("brandingPreviewName", state.branding.name);
+    setText("brandingPreviewSubtitle", state.branding.subtitle);
+    setText("brandingPreviewSlogan", state.branding.slogan);
+    setText("brandingPreviewDescription", state.branding.description);
+    const preview = document.getElementById("brandingPreviewCard");
+    if (preview) {
+      preview.style.background = `linear-gradient(135deg,#0f172a 0%,${state.branding.primaryColor || "#2563eb"} 55%,${state.branding.accentColor || "#8b5cf6"} 100%)`;
+    }
+  }
+
+  function openBrandingModal() {
+    const ids = {
+      brandNameInput: "name",
+      brandSubtitleInput: "subtitle",
+      brandSloganInput: "slogan",
+      brandDescriptionInput: "description",
+      brandPrimaryColorInput: "primaryColor",
+      brandAccentColorInput: "accentColor",
+      brandCompanyInput: "company"
+    };
+    Object.entries(ids).forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = state.branding[key] || "";
+    });
+    document.getElementById("brandingModal").style.display = "flex";
+    applyBrandingToUI();
+  }
+
+  function closeBrandingModal() {
+    document.getElementById("brandingModal").style.display = "none";
+  }
+
+  function readBrandingForm() {
+    return {
+      name: document.getElementById("brandNameInput")?.value?.trim() || "LeafNav Studio",
+      subtitle: document.getElementById("brandSubtitleInput")?.value?.trim() || "室內導航工作台",
+      slogan: document.getElementById("brandSloganInput")?.value?.trim() || state.branding.slogan,
+      description: document.getElementById("brandDescriptionInput")?.value?.trim() || state.branding.description,
+      primaryColor: document.getElementById("brandPrimaryColorInput")?.value || "#2563eb",
+      accentColor: document.getElementById("brandAccentColorInput")?.value || "#8b5cf6",
+      company: document.getElementById("brandCompanyInput")?.value?.trim() || "LeafNav Studio"
+    };
+  }
+
+  function saveBranding() {
+    state.branding = readBrandingForm();
+    persistBranding();
+    applyBrandingToUI();
+    addLog("更新品牌設定", state.branding.name);
+    setMessage("已儲存品牌設定。");
+    render();
+  }
+
+  function resetBranding() {
+    state.branding = {
+      name: "LeafNav Studio",
+      subtitle: "室內導航工作台",
+      slogan: "把室內定位、地圖編輯、QR Anchor、路網導航整合成一個產品級工作台",
+      description: "適合展示、POC、內部測試與現場實驗。支援使用者 / 管理員雙入口、Anchor 與地圖雙向同步、多樓層導航、快照、專案匯入匯出與協作同步。",
+      primaryColor: "#2563eb",
+      accentColor: "#8b5cf6",
+      company: "LeafNav Studio"
+    };
+    persistBranding();
+    openBrandingModal();
+    applyBrandingToUI();
+    addLog("重設品牌設定");
+    setMessage("已恢復預設品牌設定。");
+    render();
+  }
+
+
+
+  async function copyTextFromElement(id, successMessage) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return;
+      await navigator.clipboard.writeText(el.value || el.textContent || "");
+      setMessage(successMessage);
+      addLog("複製部署範本", id);
+    } catch (e) {
+      alert("複製失敗，請手動選取文字。");
+    }
+  }
+
+
+
+  function openDemoModal() {
+    document.getElementById("demoModal").style.display = "flex";
+    updateDemoStatusUI();
+  }
+
+  function closeDemoModal() {
+    document.getElementById("demoModal").style.display = "none";
+  }
+
+  function updateDemoStatusUI() {
+    const el = document.getElementById("demoStatusText");
+    if (el) el.textContent = state.demoStatus || "尚未載入 demo 資料。";
+  }
+
+  function demoFloors(count) {
+    if (count === 1) return ["1F"];
+    if (count === 2) return ["1F", "2F"];
+    return ["1F", "2F", "3F"];
+  }
+
+  function buildDemoData(scenario, floorCount) {
+    const floors = demoFloors(Number(floorCount || 2));
+    const anchors = [];
+    const mapElements = [];
+    const navHistory = [];
+    const snapshots = [];
+
+    floors.forEach((floor, idx) => {
+      const yOffset = 0;
+      // walkable corridors
+      mapElements.push(
+        {
+          id: crypto.randomUUID(),
+          type: "line",
+          name: `${floor} 主走廊 A`,
+          points: [{ x: -18, y: 0 + yOffset }, { x: 18, y: 0 + yOffset }],
+          semantic: "walkable",
+          floor,
+          linkFloor: "",
+          connectorType: "stairs",
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: crypto.randomUUID(),
+          type: "line",
+          name: `${floor} 主走廊 B`,
+          points: [{ x: 0, y: -14 + yOffset }, { x: 0, y: 14 + yOffset }],
+          semantic: "walkable",
+          floor,
+          linkFloor: "",
+          connectorType: "stairs",
+          createdAt: new Date().toISOString()
+        }
+      );
+
+      // restricted / landmarks
+      mapElements.push({
+        id: crypto.randomUUID(),
+        type: "area",
+        name: `${floor} ${scenario === "office" ? "會議區" : scenario === "mall" ? "品牌展示區" : scenario === "campus" ? "實驗教室區" : "診療區"}`,
+        points: [{ x: 6, y: -8 }, { x: 16, y: -8 }, { x: 16, y: -2 }, { x: 6, y: -2 }],
+        semantic: "restricted",
+        floor,
+        linkFloor: "",
+        connectorType: "stairs",
+        createdAt: new Date().toISOString()
+      });
+
+      // anchors
+      anchors.push(
+        {
+          id: crypto.randomUUID(),
+          name: `${floor} 入口`,
+          x: -16,
+          y: 0,
+          heading: 90,
+          floor,
+          payload: `INDOOR_ANCHOR:-16,0,90`,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: crypto.randomUUID(),
+          name: `${floor} 服務台`,
+          x: -6,
+          y: 0,
+          heading: 90,
+          floor,
+          payload: `INDOOR_ANCHOR:-6,0,90`,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: crypto.randomUUID(),
+          name: `${floor} 目標點`,
+          x: 12,
+          y: 10,
+          heading: 0,
+          floor,
+          payload: `INDOOR_ANCHOR:12,10,0`,
+          createdAt: new Date().toISOString()
+        }
+      );
+
+      // connectors between floors
+      if (idx < floors.length - 1) {
+        mapElements.push(
+          {
+            id: crypto.randomUUID(),
+            type: "point",
+            name: `${floor} 電梯`,
+            x: 0,
+            y: 0,
+            semantic: "connector",
+            floor,
+            linkFloor: floors[idx + 1],
+            connectorType: "elevator",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "point",
+            name: `${floor} 樓梯`,
+            x: 10,
+            y: 0,
+            semantic: "connector",
+            floor,
+            linkFloor: floors[idx + 1],
+            connectorType: "stairs",
+            createdAt: new Date().toISOString()
+          }
+        );
+      }
+      if (idx > 0) {
+        mapElements.push(
+          {
+            id: crypto.randomUUID(),
+            type: "point",
+            name: `${floor} 電梯`,
+            x: 0,
+            y: 0,
+            semantic: "connector",
+            floor,
+            linkFloor: floors[idx - 1],
+            connectorType: "elevator",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "point",
+            name: `${floor} 樓梯`,
+            x: 10,
+            y: 0,
+            semantic: "connector",
+            floor,
+            linkFloor: floors[idx - 1],
+            connectorType: "stairs",
+            createdAt: new Date().toISOString()
+          }
+        );
+      }
+    });
+
+    navHistory.push({
+      id: crypto.randomUUID(),
+      targetId: anchors[anchors.length - 1]?.id || "",
+      targetName: anchors[anchors.length - 1]?.name || "目標點",
+      startedAt: Date.now() - 1000 * 60 * 5,
+      endedAt: Date.now() - 1000 * 60 * 2,
+      durationMs: 180000,
+      durationText: "3 分",
+      totalDistance: 42.5,
+      totalDistanceText: "42.5 m",
+      routeMode: "network",
+      waypointCount: 2,
+      status: "arrived"
+    });
+
+    snapshots.push({
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      label: `Demo 初始版本 / ${scenario}`,
+      project: {
+        anchors,
+        mapElements,
+        navHistory,
+        settings: {
+          currentFloor: floors[0],
+          routePreference: "normal",
+          showAnchorOverlay: true,
+          showMapOverlay: true,
+          voiceGuideEnabled: true,
+          snapEnabled: true,
+          autoIntersectEnabled: true,
+          arrivalThreshold: 2,
+          averageWalkingSpeed: 1.15,
+          stepLength: 0.72,
+          autoSnapshotEnabled: true,
+          appRole: "admin",
+          adminUnlocked: true
+        }
+      }
+    });
+
+    return { anchors, mapElements, navHistory, snapshots, floors };
+  }
+
+  function loadDemoProject() {
+    const name = document.getElementById("demoProjectName")?.value?.trim() || "LeafNav Demo Building";
+    const floorCount = Number(document.getElementById("demoFloorCount")?.value || 2);
+    const scenario = document.getElementById("demoScenarioSelect")?.value || "office";
+
+    maybeCreateAutoSnapshot("載入 Demo 專案前");
+
+    const data = buildDemoData(scenario, floorCount);
+    state.savedAnchors = data.anchors;
+    state.mapElements = data.mapElements;
+    state.navHistory = data.navHistory;
+    state.snapshots = data.snapshots.concat(state.snapshots || []).slice(0, 30);
+    state.currentFloor = data.floors[0] || "1F";
+    state.appRole = "admin";
+    state.adminUnlocked = true;
+
+    localStorage.setItem("indoor_saved_anchors", JSON.stringify(state.savedAnchors));
+    localStorage.setItem("indoor_map_elements", JSON.stringify(state.mapElements));
+    localStorage.setItem("indoor_nav_history", JSON.stringify(state.navHistory));
+    localStorage.setItem("indoor_project_snapshots", JSON.stringify(state.snapshots));
+    localStorage.setItem("indoor_app_role", "admin");
+    localStorage.setItem("indoor_admin_unlocked", "true");
+
+    state.demoLoaded = true;
+    state.demoStatus = `已載入 ${name} / ${scenario} / ${floorCount} 樓 Demo。`;
+
+    addLog("載入 Demo 專案", `${name} / ${scenario} / ${floorCount}樓`);
+    renderSavedAnchors();
+    renderMapElements();
+    renderNavHistory();
+    renderSnapshots();
+    render();
+    setMessage(state.demoStatus);
+  }
+
+  function startDemoTour() {
+    if (!state.demoLoaded) {
+      loadDemoProject();
+    }
+    switchPage("homePage");
+    setMessage("Demo 展示導覽已準備完成。你可以先展示首頁，再切到導航、QR、地圖編輯。");
+    addLog("開始 Demo 導覽");
+    render();
+  }
+
+
+
+  function openKioskModal() {
+    document.getElementById("kioskModal").style.display = "flex";
+    const chk = document.getElementById("kioskAutoRotate");
+    if (chk) chk.checked = !!state.kioskAutoRotate;
+  }
+
+  function closeKioskModal() {
+    document.getElementById("kioskModal").style.display = "none";
+  }
+
+  async function enterFullscreenSafe() {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (e) {}
+  }
+
+  async function exitFullscreenSafe() {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    } catch (e) {}
+  }
+
+  function applyKioskUI() {
+    document.body.classList.toggle("kiosk", !!state.kioskMode);
+
+    // hide tabs except home/nav in kiosk
+    document.querySelectorAll(".tabbtn").forEach((btn) => {
+      const page = btn.getAttribute("data-page");
+      if (!state.kioskMode) {
+        btn.classList.remove("kiosk-hide");
+      } else {
+        if (!["homePage","navPage"].includes(page)) btn.classList.add("kiosk-hide");
+      }
+    });
+
+    // hide admin-ish topbar buttons
+    ["btnOpenBranding","btnOpenCollab","btnOpenLog","btnOpenSnapshots","btnCreateSnapshot","btnImportProject","btnExportProject","btnOpenDemo","btnOpenAuth","btnOpenKiosk"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!state.kioskMode) {
+        el.classList.remove("kiosk-hide");
+      } else {
+        if (id !== "btnToggleKiosk") el.classList.add("kiosk-hide");
+      }
+    });
+
+    const roleWrap = document.getElementById("appRoleSelect")?.closest("label");
+    if (roleWrap) roleWrap.classList.toggle("kiosk-hide", !!state.kioskMode);
+  }
+
+  function startKioskRotation() {
+    stopKioskRotation();
+    if (!state.kioskAutoRotate) return;
+    state.kioskTimer = setInterval(() => {
+      state.kioskIndex = (state.kioskIndex + 1) % state.kioskPages.length;
+      switchPage(state.kioskPages[state.kioskIndex]);
+      render();
+    }, 10000);
+  }
+
+  function stopKioskRotation() {
+    if (state.kioskTimer) {
+      clearInterval(state.kioskTimer);
+      state.kioskTimer = null;
+    }
+  }
+
+  async function startKioskMode() {
+    state.kioskAutoRotate = !!document.getElementById("kioskAutoRotate")?.checked;
+    state.kioskMode = true;
+    state.appRole = "user";
+    localStorage.setItem("indoor_app_role", "user");
+    await enterFullscreenSafe();
+    switchPage("homePage");
+    startKioskRotation();
+    addLog("啟動簡報模式", state.kioskAutoRotate ? "自動輪播" : "手動");
+    setMessage("已啟動簡報模式。");
+    closeKioskModal();
+    render();
+  }
+
+  async function stopKioskMode() {
+    state.kioskMode = false;
+    stopKioskRotation();
+    await exitFullscreenSafe();
+    addLog("退出簡報模式");
+    setMessage("已退出簡報模式。");
+    render();
+  }
+
+
+
+  function openTourModal() {
+    document.getElementById("tourModal").style.display = "flex";
+    updateTourUI();
+  }
+
+  function closeTourModal() {
+    document.getElementById("tourModal").style.display = "none";
+  }
+
+  function updateTourUI() {
+    const banner = document.getElementById("tourStatusBanner");
+    if (banner) banner.textContent = state.tourStatus || "尚未開始展示劇本。";
+    const overlay = document.getElementById("tourOverlay");
+    if (overlay) {
+      overlay.style.display = state.tourRunning ? "" : "none";
+      overlay.textContent = state.tourStatus || "";
+    }
+  }
+
+  function buildTourSteps(preset) {
+    const stepsStandard = [
+      { page: "homePage", role: "user", message: "第一步：展示品牌化首頁，說明這是一套室內導航工作台。" },
+      { page: "navPage", role: "user", message: "第二步：展示使用者導航介面，包括方向、距離、進度與到點提示。" },
+      { page: "qrPage", role: "admin", message: "第三步：展示 QR / Anchor 管理，說明如何建立校正點與同步資料。" },
+      { page: "mapEditorPage", role: "admin", message: "第四步：展示地圖編輯、路網、牆與限制區域設定。" },
+      { page: "setupPage", role: "admin", message: "第五步：展示部署教學、Firebase 與 Firestore 規則範本。" }
+    ];
+    const stepsNavigation = [
+      { page: "homePage", role: "user", message: "導航導覽：先看首頁與模式入口。" },
+      { page: "navPage", role: "user", message: "導航導覽：展示多段路徑、箭頭導引、語音提示與到點切段。" },
+      { page: "navPage", role: "user", message: "導航導覽：展示多樓層與電梯 / 樓梯 / 無障礙偏好。" }
+    ];
+    const stepsAdmin = [
+      { page: "homePage", role: "admin", message: "管理導覽：先展示首頁與管理員入口。" },
+      { page: "qrPage", role: "admin", message: "管理導覽：展示 Anchor、QR 與本地清單。" },
+      { page: "mapEditorPage", role: "admin", message: "管理導覽：展示地圖編輯、路網與語義設定。" },
+      { page: "setupPage", role: "admin", message: "管理導覽：展示部署、協作與交付流程。" }
+    ];
+    if (preset === "navigation") return stepsNavigation;
+    if (preset === "admin") return stepsAdmin;
+    return stepsStandard;
+  }
+
+  function stopTour() {
+    state.tourRunning = false;
+    if (state.tourTimer) {
+      clearTimeout(state.tourTimer);
+      state.tourTimer = null;
+    }
+    state.tourStepIndex = 0;
+    state.tourSteps = [];
+    state.tourStatus = "展示劇本已停止。";
+    updateTourUI();
+    addLog("停止展示劇本");
+    render();
+  }
+
+  function applyTourStep(step) {
+    if (!step) return;
+    if (step.role === "admin") {
+      state.appRole = state.adminUnlocked ? "admin" : "user";
+      localStorage.setItem("indoor_app_role", state.appRole);
+    } else {
+      state.appRole = "user";
+      localStorage.setItem("indoor_app_role", "user");
+    }
+
+    if (step.role === "admin" && !state.adminUnlocked) {
+      step = { ...step, page: "homePage", message: step.message + "（目前尚未解鎖管理員模式，因此停留在首頁示意。）" };
+    }
+
+    switchPage(step.page);
+    state.tourStatus = `Step ${state.tourStepIndex + 1}/${state.tourSteps.length}：${step.message}`;
+    updateTourUI();
+    addLog("展示劇本步驟", step.message);
+    render();
+  }
+
+  function runTourStep() {
+    if (!state.tourRunning) return;
+    const step = state.tourSteps[state.tourStepIndex];
+    if (!step) {
+      state.tourRunning = false;
+      state.tourStatus = "展示劇本已完成。";
+      updateTourUI();
+      addLog("完成展示劇本");
+      render();
+      return;
+    }
+
+    applyTourStep(step);
+    const delaySec = Math.max(3, Number(document.getElementById("tourStepSeconds")?.value || 8));
+    state.tourTimer = setTimeout(() => {
+      state.tourStepIndex += 1;
+      runTourStep();
+    }, delaySec * 1000);
+  }
+
+  function startTour() {
+    if (!state.demoLoaded) {
+      loadDemoProject();
+    }
+    const preset = document.getElementById("tourPresetSelect")?.value || "standard";
+    state.tourSteps = buildTourSteps(preset);
+    state.tourStepIndex = 0;
+    state.tourRunning = true;
+    state.tourStatus = "展示劇本啟動中...";
+    closeTourModal();
+    addLog("開始展示劇本", preset);
+    runTourStep();
+  }
+
+
+
+  function openReleaseModal() {
+    document.getElementById("releaseModal").style.display = "flex";
+    applyReleaseProfilePreset();
+    updateReleaseUI();
+  }
+
+  function closeReleaseModal() {
+    document.getElementById("releaseModal").style.display = "none";
+  }
+
+  function updateReleaseUI() {
+    const el = document.getElementById("releaseStatusBanner");
+    if (el) el.textContent = state.releaseStatus || "尚未建立發佈包。";
+  }
+
+  function releaseReadmeText(projectName, audience, profile = 'client') {
+    const cfg = releaseProfileConfig(profile);
+    return `${projectName}
+==============================
+
+Audience: ${audience}
+Profile: ${cfg.audienceLabel}
+Generated at: ${new Date().toLocaleString()}
+
+Files
+-----
+1. index.html
+   - 主網站檔案
+   - 可直接部署到 GitHub Pages
+
+2. project.json
+   - 專案資料檔
+   - 包含 anchors / mapElements / navHistory / branding / settings
+
+3. README.txt
+   - 使用與部署說明
+
+4. CHECKLIST.txt
+   - 交付檢查清單
+
+Deploy
+------
+1. 把 index.html 上傳到 GitHub repository 根目錄
+2. 到 Settings -> Pages
+3. Source 選 Deploy from a branch
+4. Branch 選 main / root
+5. 等待 GitHub Pages 發佈
+
+Import project
+--------------
+1. 打開網站
+2. 右上角按 匯入專案
+3. 選擇 project.json
+4. 即可還原資料
+
+Profile notes
+-------------
+${cfg.notes.map((n, i) => `${i + 1}. ${n}`).join("\n")}
+
+Recommended role
+----------------
+- ${cfg.recommendedRole}
+
+Notes
+-----
+- 若要多人同步，請另外設定 Firebase / Firestore
+- 若要管理員登入，請先設定本地密碼或 Firebase Auth
+- 建議交付前先建立快照與專案備份
+`;
+  }
+
+  function releaseChecklistText(projectName, audience, profile = 'client') {
+    const cfg = releaseProfileConfig(profile);
+    return `${projectName} Release Checklist
+==============================
+
+Audience: ${audience}
+Profile: ${cfg.audienceLabel}
+
+[ ] index.html 已更新到最新版
+[ ] project.json 已確認可成功匯入
+[ ] 品牌名稱 / 主色 / slogan 已確認
+[ ] Demo 資料是否需要包含
+[ ] 管理員模式是否需預先解鎖
+[ ] Firebase config 是否已準備
+[ ] Firestore rules 是否已配置
+[ ] GitHub Pages 網址是否可開啟
+[ ] 手機瀏覽器是否測過權限授予
+[ ] 是否已建立快照備份
+[ ] 交付版本是否符合 ${cfg.audienceLabel} 需求
+[ ] 建議角色是否確認為 ${cfg.recommendedRole}
+`;
+  }
+
+  async function buildReleaseZip() {
+    try {
+      const projectName = (document.getElementById("releaseProjectName")?.value || "leafnav-release").trim();
+      const audience = document.getElementById("releaseAudience")?.value || "client";
+      const profile = document.getElementById("releaseProfileSelect")?.value || "client";
+      const profile = document.getElementById("releaseProfileSelect")?.value || "client";
+      const includeDemo = (document.getElementById("releaseIncludeDemo")?.value || "yes") === "yes";
+
+      const payload = buildProjectPayload();
+      if (!includeDemo) {
+        payload.demo = { loaded: false, status: "release build" };
+      }
+
+      const zip = new JSZip();
+      zip.file("index.html", document.documentElement.outerHTML);
+      zip.file("project.json", JSON.stringify(payload, null, 2));
+      zip.file("README.txt", releaseReadmeText(projectName, audience, profile));
+      zip.file("CHECKLIST.txt", releaseChecklistText(projectName, audience, profile));
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${projectName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      state.releaseStatus = `已建立 ${releaseProfileConfig(profile).audienceLabel} 發佈包：${projectName}.zip`;
+      addLog("建立發佈包", `${projectName}.zip / ${profile}`);
+      updateReleaseUI();
+      setMessage(state.releaseStatus);
+    } catch (e) {
+      alert("建立發佈包失敗：" + e.message);
+    }
+  }
+
+  function buildReleaseDocsOnly() {
+    try {
+      const projectName = (document.getElementById("releaseProjectName")?.value || "leafnav-release").trim();
+      const audience = document.getElementById("releaseAudience")?.value || "client";
+
+      const readmeBlob = new Blob([releaseReadmeText(projectName, audience, profile)], { type: "text/plain;charset=utf-8" });
+      const checklistBlob = new Blob([releaseChecklistText(projectName, audience, profile)], { type: "text/plain;charset=utf-8" });
+
+      [["README.txt", readmeBlob], ["CHECKLIST.txt", checklistBlob]].forEach(([name, blob]) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${projectName}-${name}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+
+      state.releaseStatus = `已下載 ${releaseProfileConfig(profile).audienceLabel} 發佈說明文件：${projectName}`;
+      addLog("下載發佈說明", `${projectName} / ${profile}`);
+      updateReleaseUI();
+      setMessage(state.releaseStatus);
+    } catch (e) {
+      alert("下載發佈說明失敗：" + e.message);
+    }
+  }
+
+
+
+  function releaseProfileConfig(profile) {
+    if (profile === "internal") {
+      return {
+        audienceLabel: "內部測試版",
+        includeDemo: false,
+        recommendedRole: "admin",
+        notes: [
+          "保留較完整工程能力與管理員模式",
+          "適合 QA、內部測試與地圖維護團隊",
+          "建議搭配專案快照與操作紀錄"
+        ]
+      };
+    }
+    if (profile === "event") {
+      return {
+        audienceLabel: "展場展示版",
+        includeDemo: true,
+        recommendedRole: "user",
+        notes: [
+          "建議預先載入 Demo 專案資料",
+          "建議搭配簡報模式與展示劇本",
+          "適合平板 / 手機現場展示"
+        ]
+      };
+    }
+    return {
+      audienceLabel: "客戶版",
+      includeDemo: true,
+      recommendedRole: "user",
+      notes: [
+        "建議使用品牌化首頁與 Demo 資料",
+        "可保留部署教學與專案匯入匯出",
+        "適合提案、PoC 與客戶測試"
+      ]
+    };
+  }
+
+  function applyReleaseProfilePreset() {
+    const profile = document.getElementById("releaseProfileSelect")?.value || "client";
+    const cfg = releaseProfileConfig(profile);
+    const includeDemoEl = document.getElementById("releaseIncludeDemo");
+    const audienceEl = document.getElementById("releaseAudience");
+    if (includeDemoEl) includeDemoEl.value = cfg.includeDemo ? "yes" : "no";
+    if (audienceEl) audienceEl.value =
+      profile === "internal" ? "internal" :
+      profile === "event" ? "event" : "client";
+  }
+
+
+
+
+  function loadTeamSettings() {
+    state.teamMode = localStorage.getItem("indoor_team_mode") || "solo";
+    state.selectedLeaderId = localStorage.getItem("indoor_selected_leader") || "";
+    state.meetingPointId = localStorage.getItem("indoor_meeting_point") || "";
+    state.teamWarnDistance = Number(localStorage.getItem("indoor_team_warn_distance") || 15);
+  }
+
+  function persistTeamSettings() {
+    localStorage.setItem("indoor_team_mode", state.teamMode || "solo");
+    localStorage.setItem("indoor_selected_leader", state.selectedLeaderId || "");
+    localStorage.setItem("indoor_meeting_point", state.meetingPointId || "");
+    localStorage.setItem("indoor_team_warn_distance", String(state.teamWarnDistance || 15));
+  }
+
+
+  function loadLiveTrackingSettings() {
+    state.liveUserName = localStorage.getItem("indoor_live_user_name") || "Guest";
+    state.liveTrackingEnabled = localStorage.getItem("indoor_live_enabled") === "true";
+  }
+
+  function persistLiveTrackingSettings() {
+    localStorage.setItem("indoor_live_user_name", state.liveUserName || "Guest");
+    localStorage.setItem("indoor_live_enabled", state.liveTrackingEnabled ? "true" : "false");
+  }
+
+  function currentLivePosePayload() {
+    const pose = latestPose();
+    return {
+      userId: state.liveUserId,
+      name: state.liveUserName || "Guest",
+      x: Number(pose.x || 0),
+      y: Number(pose.y || 0),
+      heading: Number(pose.heading || 0),
+      floor: currentNavFloor ? currentNavFloor() : (state.currentFloor || "1F"),
+      teamMode: state.teamMode || "solo",
+      leaderId: state.teamMode === "leader" ? state.liveUserId : (state.teamMode === "follower" ? state.selectedLeaderId || "" : ""),
+      updatedAt: Date.now()
+    };
+  }
+
+  async function pushLivePosition() {
+    if (!state.liveTrackingEnabled) return;
+    if (!state.collabDb || !state.collabDb.collection || !state.collabDb.doc || !state.collabDb.setDoc) return;
+    try {
+      const liveDoc = state.collabDb.doc(
+        state.collabDb.collection(state.collabDb.db, "indoorRooms", state.collabRoomId, "liveUsers"),
+        state.liveUserId
+      );
+      await state.collabDb.setDoc(liveDoc, currentLivePosePayload(), { merge: true });
+    } catch (e) {
+      console.error("pushLivePosition error", e);
+    }
+  }
+
+  function stopLiveTracking() {
+    state.liveTrackingEnabled = false;
+    persistLiveTrackingSettings();
+    if (state.liveUpdateTimer) {
+      clearInterval(state.liveUpdateTimer);
+      state.liveUpdateTimer = null;
+    }
+    if (state.liveUsersUnsub) {
+      state.liveUsersUnsub();
+      state.liveUsersUnsub = null;
+    }
+    state.liveUsers = {};
+    setMessage("已停止多人即時定位。");
+    addLog("停止多人定位");
+    render();
+  }
+
+  async function startLiveTracking() {
+    state.liveUserName = (document.getElementById("liveUserNameInput")?.value || "Guest").trim() || "Guest";
+    persistLiveTrackingSettings();
+
+    if (!state.collabDb || !state.collabDb.collection || !state.collabDb.doc || !state.collabDb.setDoc || !state.collabDb.onSnapshotCollection) {
+      alert("請先完成 Firebase 協作同步連線，才能開啟多人定位。");
+      return;
+    }
+
+    state.liveTrackingEnabled = true;
+    persistLiveTrackingSettings();
+
+    if (state.liveUsersUnsub) {
+      state.liveUsersUnsub();
+      state.liveUsersUnsub = null;
+    }
+    if (state.liveUpdateTimer) {
+      clearInterval(state.liveUpdateTimer);
+      state.liveUpdateTimer = null;
+    }
+
+    const liveCol = state.collabDb.collection(state.collabDb.db, "indoorRooms", state.collabRoomId, "liveUsers");
+    state.liveUsersUnsub = state.collabDb.onSnapshotCollection(liveCol, (snap) => {
+      const next = {};
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        next[docSnap.id] = d;
+      });
+      state.liveUsers = next;
+      render();
+    });
+
+    await pushLivePosition();
+    state.liveUpdateTimer = setInterval(() => {
+      pushLivePosition();
+    }, 3000);
+
+    setMessage(`已開啟多人即時定位：${state.liveUserName}`);
+    addLog("開啟多人定位", state.liveUserName);
+    render();
+  }
+
+  async function toggleLiveTracking() {
+    if (state.liveTrackingEnabled) {
+      stopLiveTracking();
+    } else {
+      await startLiveTracking();
+    }
+  }
+
+
+  function liveVisibleUsers() {
+    const now = Date.now();
+    return Object.values(state.liveUsers || {}).filter((u) => now - Number(u.updatedAt || 0) < 15000);
+  }
+
+  function selectedLeaderUser() {
+    return liveVisibleUsers().find((u) => u.userId === state.selectedLeaderId) || null;
+  }
+
+
+  function renderMeetingPointOptions() {
+    const sel = document.getElementById("teamMeetingPointSelect");
+    if (!sel) return;
+    const anchors = state.savedAnchors.filter((a) => (a.floor || "1F") === currentNavFloor());
+    sel.innerHTML = '<option value="">尚未指定</option>' + anchors.map((a) => `<option value="${a.id}">${a.name} [${a.floor || "1F"}]</option>`).join("");
+    sel.value = state.meetingPointId || "";
+  }
+
+  function selectedMeetingPoint() {
+    return state.savedAnchors.find((a) => a.id === state.meetingPointId) || null;
+  }
+
+  function teamAlertSummary() {
+    const leader = selectedLeaderUser();
+    const me = currentLivePosePayload();
+    const meeting = selectedMeetingPoint();
+    let alertText = "正常";
+    let meetingText = "-";
+    let alertKey = "normal";
+
+    if (meeting && (meeting.floor || "1F") === currentNavFloor()) {
+      const dx = Number(meeting.x || 0) - Number(me.x || 0);
+      const dy = Number(meeting.y || 0) - Number(me.y || 0);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      meetingText = `${meeting.name} / ${dist.toFixed(1)} m`;
+      if (dist <= 3) {
+        alertText = "已接近集合點";
+        alertKey = "meeting-near";
+      }
+    }
+
+    if (state.teamMode === "follower" && leader) {
+      const dx = Number(leader.x || 0) - Number(me.x || 0);
+      const dy = Number(leader.y || 0) - Number(me.y || 0);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > Number(state.teamWarnDistance || 15)) {
+        alertText = `掉隊警示 ${dist.toFixed(1)} m`;
+        alertKey = `fall-behind:${Math.round(dist)}`;
+      }
+    }
+
+    return { alertText, meetingText, alertKey };
+  }
+
+  function maybeSpeakTeamAlert() {
+    const s = teamAlertSummary();
+    if (s.alertKey !== state.lastTeamAlertKey && s.alertKey !== "normal") {
+      state.lastTeamAlertKey = s.alertKey;
+      if (s.alertKey.startsWith("fall-behind")) {
+        speakText(`注意，你與領隊距離過遠，請跟上隊伍`);
+      } else if (s.alertKey === "meeting-near") {
+        speakText(`已接近集合點`);
+      }
+      addLog("隊伍警示", s.alertText);
+    } else if (s.alertKey === "normal") {
+      state.lastTeamAlertKey = "normal";
+    }
+  }
+
+
+
+  function renderMeetingPointOptions() {
+    const sel = document.getElementById("teamMeetingPointSelect");
+    if (!sel) return;
+    const anchors = state.savedAnchors.filter((a) => (a.floor || "1F") === currentNavFloor());
+    sel.innerHTML = '<option value="">尚未指定</option>' + anchors.map((a) => `<option value="${a.id}">${a.name} [${a.floor || "1F"}]</option>`).join("");
+    sel.value = state.meetingPointId || "";
+  }
+
+  function selectedMeetingPoint() {
+    return state.savedAnchors.find((a) => a.id === state.meetingPointId) || null;
+  }
+
+  function teamAlertSummary() {
+    const leader = selectedLeaderUser();
+    const me = currentLivePosePayload();
+    const meeting = selectedMeetingPoint();
+    let alertText = "正常";
+    let meetingText = "-";
+    let alertKey = "normal";
+
+    if (meeting && (meeting.floor || "1F") === currentNavFloor()) {
+      const dx = Number(meeting.x || 0) - Number(me.x || 0);
+      const dy = Number(meeting.y || 0) - Number(me.y || 0);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      meetingText = `${meeting.name} / ${dist.toFixed(1)} m`;
+      if (dist <= 3) {
+        alertText = "已接近集合點";
+        alertKey = "meeting-near";
+      }
+    }
+
+    if (state.teamMode === "follower" && leader) {
+      const dx = Number(leader.x || 0) - Number(me.x || 0);
+      const dy = Number(leader.y || 0) - Number(me.y || 0);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > Number(state.teamWarnDistance || 15)) {
+        alertText = `掉隊警示 ${dist.toFixed(1)} m`;
+        alertKey = `fall-behind:${Math.round(dist)}`;
+      }
+    }
+
+    return { alertText, meetingText, alertKey };
+  }
+
+  function maybeSpeakTeamAlert() {
+    const s = teamAlertSummary();
+    if (s.alertKey !== state.lastTeamAlertKey && s.alertKey !== "normal") {
+      state.lastTeamAlertKey = s.alertKey;
+      if (s.alertKey.startsWith("fall-behind")) {
+        speakText(`注意，你與領隊距離過遠，請跟上隊伍`);
+      } else if (s.alertKey === "meeting-near") {
+        speakText(`已接近集合點`);
+      }
+      addLog("隊伍警示", s.alertText);
+    } else if (s.alertKey === "normal") {
+      state.lastTeamAlertKey = "normal";
+    }
+  }
+
+  function renderMissionOptions() {
+    const sel = document.getElementById("missionPointsSelect");
+    if (!sel) return;
+    sel.innerHTML = state.savedAnchors.map((a) => `<option value="${a.id}">${a.name} [${a.floor || "1F"}]</option>`).join("");
+    Array.from(sel.options).forEach((opt) => {
+      opt.selected = state.missionPointIds.includes(opt.value);
+    });
+  }
+
+  function currentMissionAnchor() {
+    const id = state.missionPointIds[state.missionCurrentIndex];
+    return state.savedAnchors.find((a) => a.id === id) || null;
+  }
+
+  function missionProgressPercent() {
+    if (!state.missionPointIds.length) return 0;
+    return Math.round((state.missionCompletedIds.length / state.missionPointIds.length) * 100);
+  }
+
+  function renderMissionPanel() {
+    renderMissionOptions();
+    const thr = document.getElementById("missionArrivalThresholdInput");
+    if (thr && document.activeElement !== thr) thr.value = String(state.missionArrivalThreshold || 3);
+
+    const status = document.getElementById("missionStatusText");
+    if (status) status.textContent = state.missionModeEnabled ? "running" : "idle";
+
+    const current = currentMissionAnchor();
+    const currentText = document.getElementById("missionCurrentPointText");
+    if (currentText) currentText.textContent = current ? `${current.name} [${current.floor || "1F"}]` : "-";
+
+    const progress = document.getElementById("missionProgressText");
+    if (progress) progress.textContent = `${missionProgressPercent()}%`;
+
+    const remaining = document.getElementById("missionRemainingText");
+    if (remaining) remaining.textContent = String(Math.max(0, state.missionPointIds.length - state.missionCompletedIds.length));
+  }
+
+  function applyMissionSelection() {
+    const sel = document.getElementById("missionPointsSelect");
+    state.missionPointIds = Array.from(sel.selectedOptions).map((o) => o.value);
+    state.missionCompletedIds = [];
+    state.missionCurrentIndex = 0;
+    persistMissionSettings();
+    render();
+    addLog("設定任務點", `${state.missionPointIds.length} points`);
+  }
+
+  function startMissionMode() {
+    if (!state.missionPointIds.length) {
+      alert("請先選至少一個任務點。");
+      return;
+    }
+    state.missionModeEnabled = true;
+    state.missionCompletedIds = [];
+    state.missionCurrentIndex = 0;
+    persistMissionSettings();
+    const first = currentMissionAnchor();
+    setMessage(`已開始任務模式。第一個任務點：${first ? first.name : "-"}`);
+    speakText(`已開始任務模式，前往 ${first ? first.name : "第一個任務點"}`);
+    addLog("開始任務模式", `${state.missionPointIds.length} points`);
+    render();
+  }
+
+  function stopMissionMode() {
+    state.missionModeEnabled = false;
+    state.missionCurrentIndex = 0;
+    state.missionCompletedIds = [];
+    setMessage("已停止任務模式。");
+    addLog("停止任務模式");
+    render();
+  }
+
+  function maybeAdvanceMission() {
+    if (!state.missionModeEnabled) return;
+    const current = currentMissionAnchor();
+    if (!current) return;
+
+    const pose = latestPose();
+    if ((current.floor || "1F") !== currentNavFloor()) return;
+
+    const dx = Number(current.x || 0) - Number(pose.x || 0);
+    const dy = Number(current.y || 0) - Number(pose.y || 0);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist <= Number(state.missionArrivalThreshold || 3)) {
+      if (!state.missionCompletedIds.includes(current.id)) {
+        state.missionCompletedIds.push(current.id);
+        state.missionCurrentIndex += 1;
+        const next = currentMissionAnchor();
+        if (next) {
+          setMessage(`已完成任務點：${current.name}，下一個：${next.name}`);
+          speakText(`已完成 ${current.name}，下一個任務點 ${next.name}`);
+          addLog("完成任務點", current.name);
+        } else {
+          state.missionModeEnabled = false;
+          setMessage("任務模式已完成。");
+          speakText("任務模式已完成");
+          addLog("任務模式完成");
+        }
+        render();
+      }
+    }
+  }
+
+
+  function renderLeaderOptions() {
+    const sel = document.getElementById("teamLeaderSelect");
+    if (!sel) return;
+    const users = liveVisibleUsers().filter((u) => u.userId !== state.liveUserId);
+    sel.innerHTML = '<option value="">尚未選擇</option>' + users.map((u) => {
+      const badge = u.teamMode === "leader" ? " [領隊]" : "";
+      return `<option value="${u.userId}">${u.name || "User"}${badge}</option>`;
+    }).join("");
+    sel.value = state.selectedLeaderId || "";
+  }
+
+  function leaderDistanceText() {
+    const leader = selectedLeaderUser();
+    if (!leader || state.teamMode !== "follower") return "-";
+    const me = currentLivePosePayload();
+    const dx = Number(leader.x || 0) - Number(me.x || 0);
+    const dy = Number(leader.y || 0) - Number(me.y || 0);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return `${dist.toFixed(1)} m`;
+  }
+
+  function applyTeamModeChange() {
+    state.teamMode = document.getElementById("teamModeSelect")?.value || "solo";
+    if (state.teamMode !== "follower") {
+      state.selectedLeaderId = "";
+    }
+    persistTeamSettings();
+    render();
+    if (state.liveTrackingEnabled) pushLivePosition();
+    addLog("切換隊伍模式", state.teamMode);
+  }
+
+  function applyLeaderSelection() {
+    state.selectedLeaderId = document.getElementById("teamLeaderSelect")?.value || "";
+    persistTeamSettings();
+    render();
+    if (state.liveTrackingEnabled) pushLivePosition();
+    addLog("指定領隊", state.selectedLeaderId || "none");
+  }
+
+
+  function renderLiveTrackingPanel() {
+    const nameInput = document.getElementById("liveUserNameInput");
+    if (nameInput && document.activeElement !== nameInput) {
+      nameInput.value = state.liveUserName || "Guest";
+    }
+    const btn = document.getElementById("btnToggleLiveTracking");
+    if (btn) btn.textContent = state.liveTrackingEnabled ? "停止多人定位" : "開啟多人定位";
+    const status = document.getElementById("liveTrackingStatusText");
+    if (status) status.textContent = state.liveTrackingEnabled ? "on" : "off";
+
+    const visibleUsers = liveVisibleUsers();
+    const count = document.getElementById("liveUserCountText");
+    if (count) count.textContent = String(visibleUsers.length);
+
+    const teamModeSelect = document.getElementById("teamModeSelect");
+    if (teamModeSelect) teamModeSelect.value = state.teamMode || "solo";
+    renderLeaderOptions();
+
+    const teamStatus = document.getElementById("teamModeStatusText");
+    if (teamStatus) teamStatus.textContent = state.teamMode || "solo";
+
+    const leaderDist = document.getElementById("leaderDistanceText");
+    if (leaderDist) leaderDist.textContent = leaderDistanceText();
+
+    const warn = document.getElementById("teamWarnDistanceInput");
+    if (warn && document.activeElement !== warn) warn.value = String(state.teamWarnDistance || 15);
+
+    renderMeetingPointOptions();
+
+    const summary = teamAlertSummary();
+    const meetingText = document.getElementById("meetingPointStatusText");
+    if (meetingText) meetingText.textContent = summary.meetingText;
+    const teamAlertText = document.getElementById("teamAlertText");
+    if (teamAlertText) teamAlertText.textContent = summary.alertText;
+  }
+
+
+
+  function renderMissionReports() {
+    const el = document.getElementById("missionReportList");
+    if (!el) return;
+    if (!state.missionReports.length) {
+      el.innerHTML = '<div class="item">尚無任務回報。</div>';
+      return;
+    }
+    el.innerHTML = state.missionReports.map((r) => `
+      <div class="item">
+        <div class="item-top">
+          <strong>${r.pointName || "未命名任務點"}</strong>
+          <span class="badge">${r.status || "done"}</span>
+        </div>
+        <div>時間：${r.timeText || "-"}</div>
+        <div>樓層：${r.floor || "-"}</div>
+        <div>備註：${r.note || "-"}</div>
+        ${r.photoData ? `<div style="margin-top:8px;"><img src="${r.photoData}" style="max-width:100%; border-radius:12px; border:1px solid #dbe3ee;" /></div>` : ""}
+      </div>
+    `).join("");
+  }
+
+  function buildMissionReport(point, status = "checked-in") {
+    return {
+      id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
+      pointId: point?.id || "",
+      pointName: point?.name || "未命名任務點",
+      floor: point?.floor || "1F",
+      status,
+      note: (document.getElementById("missionNoteInput")?.value || "").trim(),
+      photoData: state.pendingMissionPhotoData || "",
+      time: Date.now(),
+      timeText: new Date().toLocaleString(),
+      userName: state.liveUserName || "Guest"
+    };
+  }
+
+  function clearMissionInputFields() {
+    const note = document.getElementById("missionNoteInput");
+    if (note) note.value = "";
+    const photo = document.getElementById("missionPhotoInput");
+    if (photo) photo.value = "";
+    state.pendingMissionPhotoData = "";
+  }
+
+  function completeMissionPoint(point, status = "checked-in", manual = false) {
+    if (!point) return;
+    const report = buildMissionReport(point, status);
+    state.missionReports.unshift(report);
+    if (!state.missionCompletedIds.includes(point.id)) {
+      state.missionCompletedIds.push(point.id);
+    }
+    state.missionCurrentIndex += 1;
+    persistMissionSettings();
+    renderMissionReports();
+    clearMissionInputFields();
+
+    const next = currentMissionAnchor();
+    if (next) {
+      const msg = manual
+        ? `已打卡 ${point.name}，下一個任務點：${next.name}`
+        : `已完成任務點：${point.name}，下一個：${next.name}`;
+      setMessage(msg);
+      speakText(`已完成 ${point.name}，下一個任務點 ${next.name}`);
+      addLog(status === "skipped" ? "跳過任務點" : "完成任務點", point.name);
+    } else {
+      state.missionModeEnabled = false;
+      setMessage("任務模式已完成。");
+      speakText("任務模式已完成");
+      addLog("任務模式完成");
+    }
+    render();
+  }
+
+  function missionCheckIn() {
+    const point = currentMissionAnchor();
+    if (!point) {
+      alert("目前沒有任務點可打卡。");
+      return;
+    }
+    completeMissionPoint(point, "checked-in", true);
+  }
+
+  function skipMissionPoint() {
+    const point = currentMissionAnchor();
+    if (!point) {
+      alert("目前沒有任務點可跳過。");
+      return;
+    }
+    completeMissionPoint(point, "skipped", true);
+  }
+
+  async function handleMissionPhotoSelected(file) {
+    if (!file) {
+      state.pendingMissionPhotoData = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.pendingMissionPhotoData = typeof reader.result === "string" ? reader.result : "";
+      setMessage("已載入任務照片。");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function exportMissionReports() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      reports: state.missionReports
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mission-reports-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    addLog("匯出任務紀錄");
+    setMessage("已匯出任務紀錄。");
+  }
+
+
+
+  function filteredMissionReports() {
+    return (state.missionReports || []).filter((r) => {
+      const statusOk = state.dashboardFilterStatus === "all" || r.status === state.dashboardFilterStatus;
+      const floorOk = state.dashboardFilterFloor === "all" || (r.floor || "1F") === state.dashboardFilterFloor;
+      return statusOk && floorOk;
+    });
+  }
+
+  function missionPointSummaryRows() {
+    const pointMap = new Map();
+    (state.missionReports || []).forEach((r) => {
+      const key = r.pointId || r.pointName;
+      if (!pointMap.has(key)) {
+        pointMap.set(key, {
+          pointId: r.pointId || "",
+          pointName: r.pointName || "未命名任務點",
+          floor: r.floor || "1F",
+          total: 0,
+          checkedIn: 0,
+          autoArrived: 0,
+          skipped: 0,
+          photoCount: 0,
+          lastTime: r.time || 0
+        });
+      }
+      const row = pointMap.get(key);
+      row.total += 1;
+      if (r.status === "checked-in") row.checkedIn += 1;
+      if (r.status === "auto-arrived") row.autoArrived += 1;
+      if (r.status === "skipped") row.skipped += 1;
+      if (r.photoData) row.photoCount += 1;
+      row.lastTime = Math.max(row.lastTime, Number(r.time || 0));
+    });
+    return Array.from(pointMap.values()).sort((a, b) => b.lastTime - a.lastTime);
+  }
+
+  function renderMissionDashboard() {
+    const reports = filteredMissionReports();
+    const total = reports.length;
+    const checkedIn = reports.filter((r) => r.status === "checked-in").length;
+    const autoArrived = reports.filter((r) => r.status === "auto-arrived").length;
+    const skipped = reports.filter((r) => r.status === "skipped").length;
+    const photoCount = reports.filter((r) => !!r.photoData).length;
+    const completionBase = Math.max(state.missionPointIds.length || 0, missionPointSummaryRows().length || 0);
+    const completionRate = completionBase ? Math.round(((checkedIn + autoArrived) / completionBase) * 100) : 0;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(value);
+    };
+    setText("dashboardTotalReports", total);
+    setText("dashboardCheckedIn", checkedIn);
+    setText("dashboardAutoArrived", autoArrived);
+    setText("dashboardSkipped", skipped);
+    setText("dashboardPhotoCount", photoCount);
+    setText("dashboardCompletionRate", `${completionRate}%`);
+
+    const statusSel = document.getElementById("dashboardFilterStatus");
+    if (statusSel) statusSel.value = state.dashboardFilterStatus || "all";
+    const floorSel = document.getElementById("dashboardFilterFloor");
+    if (floorSel) floorSel.value = state.dashboardFilterFloor || "all";
+
+    const summaryRows = missionPointSummaryRows();
+    const summaryEl = document.getElementById("dashboardPointSummaryList");
+    if (summaryEl) {
+      if (!summaryRows.length) {
+        summaryEl.innerHTML = '<div class="item">尚無任務資料。</div>';
+      } else {
+        summaryEl.innerHTML = summaryRows.map((row) => `
+          <div class="item">
+            <div class="item-top">
+              <strong>${row.pointName}</strong>
+              <span class="badge">${row.floor}</span>
+            </div>
+            <div>回報數：${row.total}</div>
+            <div>已打卡：${row.checkedIn} / 自動到點：${row.autoArrived} / 跳過：${row.skipped}</div>
+            <div>照片數：${row.photoCount}</div>
+            <div>最後更新：${row.lastTime ? new Date(row.lastTime).toLocaleString() : "-"}</div>
+          </div>
+        `).join("");
+      }
+    }
+
+    const pendingEl = document.getElementById("dashboardPendingList");
+    if (pendingEl) {
+      const completedIds = new Set((state.missionReports || []).filter((r) => r.status !== "skipped").map((r) => r.pointId));
+      const pendingAnchors = (state.missionPointIds || [])
+        .map((id) => state.savedAnchors.find((a) => a.id === id))
+        .filter(Boolean)
+        .filter((a) => !completedIds.has(a.id));
+      if (!pendingAnchors.length) {
+        pendingEl.innerHTML = '<div class="item">尚無未完成任務點。</div>';
+      } else {
+        pendingEl.innerHTML = pendingAnchors.map((a) => `
+          <div class="item">
+            <div class="item-top">
+              <strong>${a.name}</strong>
+              <span class="badge">${a.floor || "1F"}</span>
+            </div>
+            <div>x: ${a.x} / y: ${a.y}</div>
+          </div>
+        `).join("");
+      }
+    }
+
+    const detailEl = document.getElementById("dashboardReportList");
+    if (detailEl) {
+      if (!reports.length) {
+        detailEl.innerHTML = '<div class="item">尚無任務回報。</div>';
+      } else {
+        detailEl.innerHTML = reports.map((r) => `
+          <div class="item">
+            <div class="item-top">
+              <strong>${r.pointName || "未命名任務點"}</strong>
+              <span class="badge">${r.status || "done"}</span>
+            </div>
+            <div>時間：${r.timeText || "-"}</div>
+            <div>樓層：${r.floor || "-"}</div>
+            <div>人員：${r.userName || "-"}</div>
+            <div>備註：${r.note || "-"}</div>
+            ${r.photoData ? `<div style="margin-top:8px;"><img src="${r.photoData}" style="max-width:100%; border-radius:12px; border:1px solid #dbe3ee;" /></div>` : ""}
+          </div>
+        `).join("");
+      }
+    }
+  }
+
+  function exportDashboardSummary() {
+    const reports = filteredMissionReports();
+    const summary = {
+      exportedAt: new Date().toISOString(),
+      filters: {
+        status: state.dashboardFilterStatus,
+        floor: state.dashboardFilterFloor
+      },
+      totals: {
+        totalReports: reports.length,
+        checkedIn: reports.filter((r) => r.status === "checked-in").length,
+        autoArrived: reports.filter((r) => r.status === "auto-arrived").length,
+        skipped: reports.filter((r) => r.status === "skipped").length,
+        photoCount: reports.filter((r) => !!r.photoData).length
+      },
+      pointSummary: missionPointSummaryRows(),
+      reports
+    };
+    const blob = new Blob([JSON.stringify(summary, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mission-dashboard-summary-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    addLog("匯出任務報表摘要");
+    setMessage("已匯出任務報表摘要。");
+  }
+
+
+
+  function loadAcceptanceRecords() {
+    try {
+      const raw = localStorage.getItem("indoor_acceptance_records");
+      state.acceptanceRecords = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(state.acceptanceRecords)) state.acceptanceRecords = [];
+    } catch (e) {
+      state.acceptanceRecords = [];
+    }
+  }
+
+  function persistAcceptanceRecords() {
+    localStorage.setItem("indoor_acceptance_records", JSON.stringify(state.acceptanceRecords));
+    renderAcceptanceRecords();
+  }
+
+  function renderAcceptanceSummary() {
+    const reports = state.missionReports || [];
+    const photoCount = reports.filter((r) => !!r.photoData).length
+    const completionBase = Math.max(state.missionPointIds.length || 0, missionPointSummaryRows().length || 0);
+    const done = reports.filter((r) => r.status === "checked-in" || r.status === "auto-arrived").length;
+    const completionRate = completionBase ? Math.round((done / completionBase) * 100) : 0;
+    const lastUpdate = reports.length ? new Date(Math.max(...reports.map((r) => Number(r.time || 0)))).toLocaleString() : "-";
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(value);
+    };
+    setText("acceptanceTotalReports", reports.length);
+    setText("acceptanceCompletionRate", `${completionRate}%`);
+    setText("acceptancePhotoCount", photoCount);
+    setText("acceptanceLastUpdate", lastUpdate);
+  }
+
+  function renderAcceptanceRecords() {
+    const el = document.getElementById("acceptanceRecordList");
+    if (!el) return;
+    if (!state.acceptanceRecords.length) {
+      el.innerHTML = '<div class="item">尚無驗收紀錄。</div>';
+      return;
+    }
+    el.innerHTML = state.acceptanceRecords.map((r) => `
+      <div class="item">
+        <div class="item-top">
+          <strong>${r.title || "未命名驗收"}</strong>
+          <span class="badge">${r.reviewer || "未填驗收人"}</span>
+        </div>
+        <div>時間：${r.timeText || "-"}</div>
+        <div>完成率：${r.completionRate || "0%"}</div>
+        <div>備註：${r.note || "-"}</div>
+        ${r.signatureData ? `<div style="margin-top:8px;"><img src="${r.signatureData}" style="max-width:100%; border-radius:12px; border:1px solid #dbe3ee; background:#fff;" /></div>` : ""}
+      </div>
+    `).join("");
+  }
+
+  function signatureCanvasCtx() {
+    const canvas = document.getElementById("signatureCanvas");
+    return canvas ? canvas.getContext("2d") : null;
+  }
+
+  function resetSignatureCanvasVisual() {
+    const canvas = document.getElementById("signatureCanvas");
+    const ctx = signatureCanvasCtx();
+    if (!canvas || !ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.fillText("請在此簽名", 18, 28);
+  }
+
+  function getCanvasPoint(event) {
+    const canvas = document.getElementById("signatureCanvas");
+    const rect = canvas.getBoundingClientRect();
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height)
+    };
+  }
+
+  function startSignature(event) {
+    const ctx = signatureCanvasCtx();
+    if (!ctx) return;
+    state.signatureDrawing = true;
+    state.signatureLastPoint = getCanvasPoint(event);
+    event.preventDefault();
+  }
+
+  function moveSignature(event) {
+    if (!state.signatureDrawing) return;
+    const ctx = signatureCanvasCtx();
+    if (!ctx) return;
+    const p = getCanvasPoint(event);
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(state.signatureLastPoint.x, state.signatureLastPoint.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    state.signatureLastPoint = p;
+    state.currentSignatureData = document.getElementById("signatureCanvas").toDataURL("image/png");
+    event.preventDefault();
+  }
+
+  function endSignature(event) {
+    if (!state.signatureDrawing) return;
+    state.signatureDrawing = false;
+    state.signatureLastPoint = null;
+    const canvas = document.getElementById("signatureCanvas");
+    if (canvas) state.currentSignatureData = canvas.toDataURL("image/png");
+    if (event) event.preventDefault();
+  }
+
+  function clearSignature() {
+    state.currentSignatureData = "";
+    resetSignatureCanvasVisual();
+  }
+
+  function buildAcceptanceRecord() {
+    const reports = state.missionReports || [];
+    const completionBase = Math.max(state.missionPointIds.length || 0, missionPointSummaryRows().length || 0);
+    const done = reports.filter((r) => r.status === "checked-in" || r.status === "auto-arrived").length;
+    const completionRate = completionBase ? `${Math.round((done / completionBase) * 100)}%` : "0%";
+
+    return {
+      id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
+      reviewer: (document.getElementById("acceptanceReviewerInput")?.value || "").trim(),
+      title: (document.getElementById("acceptanceTitleInput")?.value || "").trim() || "未命名驗收",
+      note: (document.getElementById("acceptanceNoteInput")?.value || "").trim(),
+      completionRate,
+      reportCount: reports.length,
+      photoCount: reports.filter((r) => !!r.photoData).length,
+      signatureData: state.currentSignatureData || "",
+      time: Date.now(),
+      timeText: new Date().toLocaleString()
+    };
+  }
+
+  function saveAcceptanceRecord() {
+    const record = buildAcceptanceRecord();
+    state.acceptanceRecords.unshift(record);
+    persistAcceptanceRecords();
+    addLog("保存驗收紀錄", record.title);
+    setMessage(`已保存驗收紀錄：${record.title}`);
+    render();
+  }
+
+  function exportAcceptanceRecord() {
+    const record = buildAcceptanceRecord();
+    const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `acceptance-record-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    addLog("匯出驗收紀錄", record.title);
+    setMessage("已匯出驗收紀錄。");
+  }
+
+  function exportAllAcceptances() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      records: state.acceptanceRecords
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `acceptance-records-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    addLog("匯出全部驗收紀錄");
+    setMessage("已匯出全部驗收紀錄。");
+  }
+
+
+
+  function acceptanceDraftRecord() {
+    const reports = state.missionReports || [];
+    const completionBase = Math.max(state.missionPointIds.length || 0, missionPointSummaryRows().length || 0);
+    const done = reports.filter((r) => r.status === "checked-in" || r.status === "auto-arrived").length;
+    const completionRate = completionBase ? `${Math.round((done / completionBase) * 100)}%` : "0%";
+    return {
+      reviewer: (document.getElementById("acceptanceReviewerInput")?.value || "").trim(),
+      title: (document.getElementById("acceptanceTitleInput")?.value || "").trim() || "未命名驗收",
+      note: (document.getElementById("acceptanceNoteInput")?.value || "").trim(),
+      completionRate,
+      reportCount: reports.length,
+      photoCount: reports.filter((r) => !!r.photoData).length,
+      missionCount: state.missionPointIds.length || missionPointSummaryRows().length || 0,
+      signatureData: state.currentSignatureData || "",
+      timeText: new Date().toLocaleString(),
+      recentReports: reports.slice(0, 5)
+    };
+  }
+
+  function renderAcceptancePdfPreview() {
+    const draft = acceptanceDraftRecord();
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+
+    setText("pdfBrandName", state.branding?.name || "LeafNav Studio");
+    setText("pdfBrandSubtitle", state.branding?.subtitle || "室內導航工作台");
+    setText("pdfAcceptanceTime", draft.timeText || "-");
+    setText("pdfAcceptanceTitle", draft.title || "未命名驗收");
+    setText("pdfAcceptanceReviewer", draft.reviewer || "-");
+    setText("pdfAcceptanceReportCount", String(draft.reportCount || 0));
+    setText("pdfAcceptanceCompletionRate", draft.completionRate || "0%");
+    setText("pdfAcceptancePhotoCount", String(draft.photoCount || 0));
+    setText("pdfAcceptanceMissionCount", String(draft.missionCount || 0));
+    setText("pdfAcceptanceNote", draft.note || "-");
+
+    const recent = document.getElementById("pdfAcceptanceRecentReports");
+    if (recent) {
+      if (!draft.recentReports.length) {
+        recent.textContent = "尚無任務回報。";
+      } else {
+        recent.innerHTML = draft.recentReports.map((r) => `
+          <div style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+            <strong>${r.pointName || "未命名任務點"}</strong> / ${r.status || "-"} / ${r.timeText || "-"}${r.note ? ` / ${r.note}` : ""}
+          </div>
+        `).join("");
+      }
+    }
+
+    const sig = document.getElementById("pdfAcceptanceSignature");
+    if (sig) {
+      if (draft.signatureData) {
+        sig.src = draft.signatureData;
+        sig.style.display = "";
+      } else {
+        sig.removeAttribute("src");
+        sig.style.display = "none";
+      }
+    }
+  }
+
+  async function exportAcceptancePdf() {
+    try {
+      renderAcceptancePdfPreview();
+      const element = document.getElementById("acceptancePdfPreview");
+      if (!element) return;
+      const title = (document.getElementById("acceptanceTitleInput")?.value || "acceptance").trim().replace(/[\\/:*?"<>|]+/g, "_");
+      await html2pdf().set({
+        margin: 10,
+        filename: `${title || "acceptance"}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      }).from(element).save();
+      addLog("匯出 PDF 驗收單", title || "acceptance");
+      setMessage("已匯出 PDF 驗收單。");
+    } catch (e) {
+      alert("匯出 PDF 驗收單失敗：" + e.message);
+    }
+  }
+
+
   function render() {
     $("messageBox").textContent = state.message;
     $("guidanceBanner").textContent = state.currentGuidanceText;
+    if ($("appRoleSelect")) $("appRoleSelect").value = state.appRole;
+    updateAuthStatusUI();
     $("toggleVoiceGuide").checked = state.voiceGuideEnabled;
     $("btnNavSessionStart").disabled = !state.navTargetId || state.navSessionState === "active";
     $("btnNavSessionPause").disabled = state.navSessionState !== "active";
     $("btnNavSessionResume").disabled = state.navSessionState !== "paused";
     $("btnNavSessionEnd").disabled = state.navSessionState === "idle";
+    if ($("toggleAutoSnapshot")) $("toggleAutoSnapshot").checked = state.autoSnapshotEnabled;
+    updateCollabStatusUI();
     const editorModeBadge = $("editorModeBadge");
     if (editorModeBadge) editorModeBadge.textContent = state.editorMode;
     const editorDraftInfo = $("editorDraftInfo");
     if (editorDraftInfo) editorDraftInfo.textContent = $("editorNameInput") ? ($("editorNameInput").value.trim() || "未命名") : "未命名";
     if ($("toggleSnapMode")) $("toggleSnapMode").checked = state.snapEnabled;
     if ($("editorElementSemantic")) $("editorElementSemantic").value = $("editorElementSemantic").value || "walkable";
+    if ($("navCurrentFloorSelect")) $("navCurrentFloorSelect").value = state.currentFloor || "1F";
+    if ($("routePreferenceSelect")) $("routePreferenceSelect").value = state.routePreference || "normal";
     if ($("toggleAutoIntersect")) $("toggleAutoIntersect").checked = state.autoIntersectEnabled;
     const editorMessageBox = $("editorMessageBox");
     if (editorMessageBox) editorMessageBox.textContent = state.editorMessage;
@@ -2589,6 +6495,7 @@
     $("lastStepValue").textContent = state.lastStepAt ? new Date(state.lastStepAt).toLocaleTimeString() : "-";
     $("geoValue").textContent = state.geoReading ? `${fmt(state.geoReading.lat, 6)}, ${fmt(state.geoReading.lng, 6)}` : "-";
     $("stepLengthValue").textContent = `${fmt(state.stepLength, 2)} m`;
+    if ($("stepLength")) $("stepLength").value = String(state.stepLength);
     $("toggleAnchorOverlay").checked = state.showAnchorOverlay;
     $("toggleMapOverlay").checked = state.showMapOverlay;
     $("arrivalThresholdInput").value = String(state.arrivalThreshold);
@@ -2611,6 +6518,15 @@
     drawTrack();
     drawEditorCanvas();
     renderMapElements();
+    applyBrandingToUI();
+    applyKioskUI();
+    updateDemoStatusUI();
+    updateTourUI();
+    updateReleaseUI();
+    renderLiveTrackingPanel();
+    maybeSpeakTeamAlert();
+    renderHomeSummary();
+    applyRoleVisibility();
   }
 
   async function requestPermissions() {
@@ -3159,6 +7075,7 @@
       x,
       y,
       heading,
+      floor: currentAnchorFloor(),
       payload: buildQrPayload(),
       createdAt: new Date().toISOString()
     };
@@ -3205,7 +7122,7 @@
           <strong>${a.name}</strong>
           <span class="badge">${a.heading == null ? "無方向" : a.heading + "°"}</span>
         </div>
-        <div>x: ${a.x} / y: ${a.y}</div>
+        <div>floor: ${a.floor || "1F"} / x: ${a.x} / y: ${a.y}</div>
         <div style="margin-top:6px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#475569; word-break:break-all;">${a.payload}</div>
         <div class="btns" style="margin-top:10px; margin-bottom:0;">
           <button data-anchor-use="${a.id}">載入</button>
@@ -3311,6 +7228,125 @@
   $("btnNavSessionPause").addEventListener("click", pauseNavSession);
   $("btnNavSessionResume").addEventListener("click", resumeNavSession);
   $("btnNavSessionEnd").addEventListener("click", () => finishNavSession("ended"));
+  $("btnExportProject").addEventListener("click", exportProjectData);
+
+  $("btnCreateSnapshot").addEventListener("click", () => createSnapshot("")); 
+  $("btnOpenSnapshots").addEventListener("click", openSnapshotModal);
+  $("appRoleSelect").addEventListener("change", (e) => setAppRole(e.target.value));
+  $("btnEnterUserMode").addEventListener("click", enterUserModeFromHome);
+  $("btnEnterTesterMode").addEventListener("click", enterTesterModeFromHome);
+  $("btnGoNavigation").addEventListener("click", () => { switchPage("navPage"); render(); });
+  $("btnEnterAdminMode").addEventListener("click", enterAdminModeFromHome);
+  $("btnOpenAuthFromHome").addEventListener("click", openAuthModal);
+  $("btnOpenAuth").addEventListener("click", openAuthModal);
+  $("btnCloseAuth").addEventListener("click", closeAuthModal);
+  $("btnSetAdminPassword").addEventListener("click", setAdminPassword);
+  $("btnUnlockAdmin").addEventListener("click", unlockAdminWithPassword);
+  $("btnLockAdmin").addEventListener("click", lockAdminMode);
+  $("btnFirebaseLogin").addEventListener("click", firebaseLogin);
+  $("btnFirebaseLogout").addEventListener("click", firebaseLogout);
+  $("btnOpenLog").addEventListener("click", openLogModal);
+  $("btnCloseLog").addEventListener("click", closeLogModal);
+  $("btnCopyFirestoreRules").addEventListener("click", () => copyTextFromElement("firestoreRulesTemplate", "已複製 Firestore 規則範本。"));
+  $("btnCopyFirebaseConfig").addEventListener("click", () => copyTextFromElement("firebaseConfigTemplate", "已複製 Firebase Config 範本。"));
+  $("btnToggleLiveTracking").addEventListener("click", toggleLiveTracking);
+  $("btnRefreshLiveUsers").addEventListener("click", () => { render(); setMessage("已刷新在線狀態。"); });
+  $("liveUserNameInput").addEventListener("change", (e) => { state.liveUserName = (e.target.value || "Guest").trim() || "Guest"; persistLiveTrackingSettings(); if (state.liveTrackingEnabled) pushLivePosition(); });
+  $("teamModeSelect").addEventListener("change", applyTeamModeChange);
+  $("teamLeaderSelect").addEventListener("change", applyLeaderSelection);
+  $("teamWarnDistanceInput").addEventListener("change", (e) => { state.teamWarnDistance = Number(e.target.value || 15); persistTeamSettings(); render(); if (state.liveTrackingEnabled) pushLivePosition(); });
+  $("teamMeetingPointSelect").addEventListener("change", (e) => { state.meetingPointId = e.target.value || ""; persistTeamSettings(); render(); if (state.liveTrackingEnabled) pushLivePosition(); addLog("設定集合點", state.meetingPointId || "none"); });
+  $("missionPointsSelect").addEventListener("change", applyMissionSelection);
+  $("missionArrivalThresholdInput").addEventListener("change", (e) => { state.missionArrivalThreshold = Number(e.target.value || 3); persistMissionSettings(); render(); });
+  $("btnStartMissionMode").addEventListener("click", startMissionMode);
+  $("btnStopMissionMode").addEventListener("click", stopMissionMode);
+  $("btnMissionCheckIn").addEventListener("click", missionCheckIn);
+  $("btnMissionSkip").addEventListener("click", skipMissionPoint);
+  $("missionPhotoInput").addEventListener("change", (e) => { const file = e.target.files && e.target.files[0]; handleMissionPhotoSelected(file); });
+  $("btnExportMissionReports").addEventListener("click", exportMissionReports);
+  $("btnClearMissionReports").addEventListener("click", () => { if (!confirm("確定要清空所有任務紀錄嗎？")) return; state.missionReports = []; persistMissionSettings(); renderMissionReports(); renderMissionDashboard(); addLog("清空任務紀錄"); });
+  $("dashboardFilterStatus").addEventListener("change", (e) => { state.dashboardFilterStatus = e.target.value; renderMissionDashboard(); });
+  $("dashboardFilterFloor").addEventListener("change", (e) => { state.dashboardFilterFloor = e.target.value; renderMissionDashboard(); });
+  $("btnRefreshDashboard").addEventListener("click", () => { renderMissionDashboard(); setMessage("已刷新任務報表。"); });
+  $("btnExportDashboardSummary").addEventListener("click", exportDashboardSummary);
+  $("btnClearSignature").addEventListener("click", clearSignature);
+  $("btnSaveAcceptance").addEventListener("click", saveAcceptanceRecord);
+  $("btnExportAcceptance").addEventListener("click", exportAcceptanceRecord);
+  $("btnExportAcceptancePdf").addEventListener("click", exportAcceptancePdf);
+  ["acceptanceReviewerInput","acceptanceTitleInput","acceptanceNoteInput"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", renderAcceptancePdfPreview);
+  });
+  $("btnExportAllAcceptances").addEventListener("click", exportAllAcceptances);
+  $("btnClearAcceptances").addEventListener("click", () => {
+    if (!confirm("確定要清空所有驗收紀錄嗎？")) return;
+    state.acceptanceRecords = [];
+    persistAcceptanceRecords();
+    addLog("清空驗收紀錄");
+  });
+
+  const signatureCanvas = document.getElementById("signatureCanvas");
+  if (signatureCanvas) {
+    ["mousedown", "touchstart"].forEach((evt) => signatureCanvas.addEventListener(evt, startSignature, { passive: false }));
+    ["mousemove", "touchmove"].forEach((evt) => signatureCanvas.addEventListener(evt, moveSignature, { passive: false }));
+    ["mouseup", "mouseleave", "touchend", "touchcancel"].forEach((evt) => signatureCanvas.addEventListener(evt, endSignature, { passive: false }));
+  }
+
+  $("btnClearMissionPoints").addEventListener("click", () => { state.missionPointIds = []; state.missionCompletedIds = []; state.missionCurrentIndex = 0; persistMissionSettings(); render(); addLog("清空任務點"); });
+  $("btnExportRelease").addEventListener("click", openReleaseModal);
+  $("btnCloseRelease").addEventListener("click", closeReleaseModal);
+  $("releaseProfileSelect").addEventListener("change", applyReleaseProfilePreset);
+  $("btnBuildReleaseZip").addEventListener("click", buildReleaseZip);
+  $("btnBuildReleaseDocs").addEventListener("click", buildReleaseDocsOnly);
+  $("btnOpenTour").addEventListener("click", openTourModal);
+  $("btnCloseTour").addEventListener("click", closeTourModal);
+  $("btnStartTour").addEventListener("click", startTour);
+  $("btnStopTour").addEventListener("click", stopTour);
+  $("btnToggleKiosk").addEventListener("click", openKioskModal);
+  $("btnCloseKioskModal").addEventListener("click", closeKioskModal);
+  $("btnStartKiosk").addEventListener("click", startKioskMode);
+  $("btnStopKiosk").addEventListener("click", stopKioskMode);
+  $("btnOpenDemo").addEventListener("click", openDemoModal);
+  $("btnCloseDemo").addEventListener("click", closeDemoModal);
+  $("btnLoadDemoProject").addEventListener("click", loadDemoProject);
+  $("btnStartDemoTour").addEventListener("click", startDemoTour);
+  $("btnOpenBranding").addEventListener("click", openBrandingModal);
+  $("btnCloseBranding").addEventListener("click", closeBrandingModal);
+  $("btnSaveBranding").addEventListener("click", saveBranding);
+  $("btnResetBranding").addEventListener("click", resetBranding);
+  ["brandNameInput","brandSubtitleInput","brandSloganInput","brandDescriptionInput","brandPrimaryColorInput","brandAccentColorInput","brandCompanyInput"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", () => {
+      const next = readBrandingForm();
+      state.branding = { ...state.branding, ...next };
+      applyBrandingToUI();
+    });
+  });
+  $("btnOpenCollab").addEventListener("click", openCollabModal);
+  $("btnCloseCollab").addEventListener("click", closeCollabModal);
+  $("btnSaveCollabSettings").addEventListener("click", saveCollabSettings);
+  $("btnConnectCollab").addEventListener("click", connectCollab);
+  $("btnDisconnectCollab").addEventListener("click", disconnectCollab);
+  $("btnCloseSnapshots").addEventListener("click", closeSnapshotModal);
+  $("toggleAutoSnapshot").addEventListener("change", (e) => { state.autoSnapshotEnabled = e.target.checked; render(); });
+  $("btnExportSnapshots").addEventListener("click", exportSnapshots);
+  $("btnImportSnapshots").addEventListener("click", () => $("importSnapshotsFile").click());
+  $("importSnapshotsFile").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    importSnapshots(file);
+    e.target.value = "";
+  });
+  $("btnClearSnapshots").addEventListener("click", () => {
+    if (!confirm("確定要清空所有快照嗎？")) return;
+    state.snapshots = [];
+    persistSnapshots();
+  });
+  $("btnImportProject").addEventListener("click", () => $("importProjectFile").click());
+  $("importProjectFile").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    importProjectData(file);
+    e.target.value = "";
+  });
   $("btnExportNavHistory").addEventListener("click", exportNavHistory);
 
   $("btnEditorIdle").addEventListener("click", () => setEditorMode("idle"));
@@ -3321,6 +7357,7 @@
   $("btnEditorNormalize").addEventListener("click", () => { normalizeLineNetwork(); render(); });
   $("btnEditorClear").addEventListener("click", () => {
     if (!confirm("確定要清空所有地圖元素嗎？")) return;
+    maybeCreateAutoSnapshot("清空地圖元素前");
     state.mapElements = [];
     state.editorDraftPoints = [];
     persistMapElements();
@@ -3330,6 +7367,8 @@
   $("editorNameInput").addEventListener("input", () => render());
   $("toggleSnapMode").addEventListener("change", (e) => { state.snapEnabled = e.target.checked; render(); });
   $("toggleAutoIntersect").addEventListener("change", (e) => { state.autoIntersectEnabled = e.target.checked; render(); });
+  $("navCurrentFloorSelect").addEventListener("change", (e) => { state.currentFloor = e.target.value; render(); });
+  $("routePreferenceSelect").addEventListener("change", (e) => { state.routePreference = e.target.value; render(); });
   $("editorCanvas").addEventListener("click", handleEditorCanvasClick);
   $("btnUpdateSelectedMapElement").addEventListener("click", updateSelectedMapElementName);
   $("btnDeleteSelectedMapElement").addEventListener("click", deleteSelectedMapElement);
@@ -3344,6 +7383,7 @@
 
   $("btnClearNavHistory").addEventListener("click", () => {
     if (!confirm("確定要清空所有導航歷史嗎？")) return;
+    maybeCreateAutoSnapshot("清空導航歷史前");
     state.navHistory = [];
     persistNavHistory();
   });
@@ -3360,6 +7400,7 @@
   });
   $("btnClearAnchors").addEventListener("click", () => {
     if (!confirm("確定要清空所有已儲存校正點嗎？")) return;
+    maybeCreateAutoSnapshot("清空 Anchor 前");
     state.savedAnchors = [];
     persistSavedAnchors();
   });
@@ -3379,9 +7420,21 @@
   window.addEventListener("devicemotion", handleMotion, true);
 
   generateQr();
+  loadAppRole();
+  loadAuthState();
+  loadBranding();
+  loadLiveTrackingSettings();
+  loadTeamSettings();
+  loadMissionSettings();
+  loadAcceptanceRecords();
   loadSavedAnchors();
   loadNavHistory();
   loadMapElements();
+  loadSnapshots();
+  loadLogs();
+  loadCollabSettings();
+  setInterval(() => { flushCollabSync(); }, 2000);
+  resetSignatureCanvasVisual();
   render();
 })();
 </script>
